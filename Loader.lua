@@ -71,7 +71,9 @@ local Window = ThorUi:CreateWindow({
 -- ═══ TAB 1: Komponen dasar ═══
 local Tab1 = Window:CreateTab({ Name = "Komponen", Icon = "⚡" })
 
-Tab1:AddSection({ Name = "TEST KOMPONEN" })
+-- v2.2.1: MENU (section) bisa DI-MINIMIZE — klik judulnya untuk melipat
+-- semua fitur di dalamnya (chevron ▾ ↔ ▸):
+Tab1:AddSection({ Name = "AKSI & PEMBERITAHUAN" })
 
 Tab1:AddButton({
         Name = "Test Notify",
@@ -90,6 +92,9 @@ Tab1:AddButton({
                 ThorUi:Notify({ Title = "🌩 KRAKOOM!", Content = "Efek kilat di kartu baru saja menyala.", Duration = 3 })
         end,
 })
+
+-- menu kedua: fitur di bawah baris ini otomatis jadi anggota menu ini
+local menuSet = Tab1:AddSection({ Name = "PENGATURAN KARAKTER" })
 
 local toggleRef = Tab1:AddToggle({
         Name = "Test Toggle",
@@ -161,6 +166,8 @@ Tab1:AddColorPicker({
         end,
 })
 
+Tab1:AddSection({ Name = "DIALOG" })
+
 Tab1:AddButton({
         Name = "Test Confirm Dialog",
         Callback = function()
@@ -195,6 +202,17 @@ Tab2:AddButton({
         Name = "toggleRef:Set(false, silent)  → tanpa callback",
         Callback = function()
                 toggleRef:Set(false, true)
+        end,
+})
+
+Tab2:AddButton({
+        Name = "menuSet:SetCollapsed(true/false) — minimize menu",
+        Callback = function()
+                -- v2.2.1: minimize/buka menu 'PENGATURAN KARAKTER' di tab Komponen
+                menuSet:SetCollapsed(true)
+                task.delay(2.5, function()
+                        menuSet:SetCollapsed(false)
+                end)
         end,
 })
 
@@ -251,7 +269,10 @@ Tab3:AddParagraph({
                 .. "5) Mobile: GESER tombol ⚡ melayang ke mana saja — bebas!\n"
                 .. "   (tetap di posisi terakhir; ketuk = buka/tutup UI)\n"
                 .. "6) Minimize (tombol —) → muncul tombol + di sidebar\n"
-                .. "   untuk membesarkan window kembali.",
+                .. "   untuk membesarkan window kembali.\n"
+                .. "7) v2.2.1: klik JUDUL SECTION (mis. 'PENGATURAN KARAKTER')\n"
+                .. "   untuk MINIMIZE menu — semua fitur di dalamnya terlipat\n"
+                .. "   biar daftar lebih rapi (chevron ▾ ↔ ▸).",
 })
 
 Tab3:AddParagraph({
@@ -296,7 +317,12 @@ Tab3:AddParagraph({
                 .. "    re-ukur digabung maksimal 1 pass per frame, tween otomatis\n"
                 .. "    keluar dari registry saat selesai, hover card hanya untuk\n"
                 .. "    perangkat bermouse, search debounce 0.1s. UI jauh lebih\n"
-                .. "    ringan & lancar (anti rendutan).",
+                .. "    ringan & lancar (anti rendutan).\n"
+                .. "13) v2.2.1: MENU BISA DI-MINIMIZE — klik judul section untuk\n"
+                .. "    melipat semua fitur di dalamnya biar lebih rapi (chevron\n"
+                .. "    ▾ ↔ ▸). AddSection({ Collapsed = true }) untuk mulai\n"
+                .. "    terlipat, atau dari script: Section:Toggle() /\n"
+                .. "    :SetCollapsed(bool) / :IsCollapsed().",
 })
 
 Tab3:AddSection({ Name = "INFO" })
@@ -305,7 +331,7 @@ Tab3:AddLabel({ Text = "Repo: github.com/dwisetyabudi15581/ThorUi" })
 Tab3:AddLabel({ Text = "Output lengkap di console (F9): cari [TEST]" })
 
 --// ─── 4. Sinyal sukses ──────────────────────────────────────────────────────
-print("[ThorUi Loader] 🎉 Demo v2 siap! Coba: splash, sidebar tab, search bar, ColorPicker, Confirm.")
+print("[ThorUi Loader] 🎉 Demo v2 siap! Coba: splash, sidebar tab, search bar, ColorPicker, Confirm, minimize menu (klik judul section).")
 print("[ThorUi Loader] Ctrl+M = console. RightControl = show/hide UI.")
 
 ThorUi:Notify({

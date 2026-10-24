@@ -1,8 +1,8 @@
 --════════════════════════════════════════════════════════════════════════════
---  ⚡  ThorUi v2.2.0 — Roblox UI Library bertema Dewa Petir (Thor / Petir)
+--  ⚡  ThorUi v2.2.1 — Roblox UI Library bertema Dewa Petir (Thor / Petir)
 --      Desain, layout & tema 100% original ThorUi ⚡
 --  ──────────────────────────────────────────────────────────────────────────
---  Versi     : 2.2.0 (ModuleScript tunggal, tanpa dependensi eksternal)
+--  Versi     : 2.2.1 (ModuleScript tunggal, tanpa dependensi eksternal)
 --  Platform  : PC & Mobile — draggable, resizable, cross-platform
 --
 --  BARU DI v2.0.0 (tampilan modern)
@@ -117,6 +117,21 @@
 --  • Rebranding          : semua referensi library luar dihapus — desain,
 --                         layout & tema kini 100% original ThorUi
 --
+--  BARU DI v2.2.1 (permintaan user: "di dalam menu ada fitur — tolong
+--                  tambahkan minimize menu biar lebih rapi")
+--  • Menu minimizable    : judul section kini bisa DIKLIK untuk menutup /
+--                         membuka SEMUA fitur di dalamnya (sampai section
+--                         berikutnya) — chevron ▾ berputar jadi ▸ sebagai
+--                         penanda; judul section lain tetap terlihat
+--  • AddSection(cfg)     : Collapsed = true → menu dibuat langsung terlipat
+--  • API programatik     : Section:SetCollapsed(bool) · :Toggle() ·
+--                         :IsCollapsed() · SetDescription(teks)
+--  • Search-aware        : pencarian TIDAK membuka lipatan menu — anggota
+--                         menu yang di-minimize tetap tersembunyi, dan
+--                         judul menu tanpa hasil cocok ikut disembunyikan
+--  • Hemat performa      : lipatan diterapkan TANPA tween per elemen (satu
+--                         pass visibility) — setia pada optimasi v2.2.0
+--
 --  FITUR LANJUTAN
 --  • Tema Lightning & Thunder : Midnight Blue + Electric Blue / Lightning Gold
 --  • Animasi snappy ala kilat : TweenService (Back / Quart / Quad, cepat)
@@ -152,7 +167,9 @@
 --  Tab:AddTextInput({Name, Text, Placeholder, ClearOnFocus, Callback(text, enter)})
 --  Tab:AddKeybind({Name, Default, Callback})             :SetKey(enum) / :Get()
 --  Tab:AddColorPicker({Name, Default, Callback})          :Set(Color3) / :Get()
---  Tab:AddSection({Name})   Tab:AddLabel({Text})   Tab:AddParagraph({Title, Text})
+--  Tab:AddSection({Name, Description, Collapsed})  → Section (menu)
+--     Section:SetCollapsed(bool)  Section:Toggle()  Section:IsCollapsed()
+--  Tab:AddLabel({Text})   Tab:AddParagraph({Title, Text})
 --  Element:Set(...)         Element:Get()          Element:Remove()
 --  Element:SetDescription(teks)   → ubah keterangan elemen kapan pun
 --
@@ -173,7 +190,7 @@ local LocalPlayer = Players.LocalPlayer
 
 --// ─────────────────────────────── Library ──────────────────────────────────
 local ThorUi = {
-    Version = "2.2.0",
+    Version = "2.2.1",
 }
 
 --// ──────────────────────────────── Tema ────────────────────────────────────
@@ -1298,6 +1315,7 @@ function TabClass.new(window, cfg)
         Indicator = indicator,
         Container = container,
         Elements = {},
+        Sections = {}, -- v2.2.1: daftar menu (section) — bisa di-minimize
         Order = 0,
         Active = false,
         FilterQuery = "",
@@ -1333,6 +1351,8 @@ end
 function TabClass:_track(element)
     local tab = self
     table.insert(tab.Elements, element)
+    -- v2.2.1: elemen otomatis menjadi ANGGOTA menu (section) aktif terakhir
+    tab:_own(element)
     function element:Remove()
         if self.Registry then
             self.Registry:Clean()
@@ -1346,6 +1366,33 @@ function TabClass:_track(element)
                 break
             end
         end
+        -- v2.2.1: keluar juga dari daftar anggota menu (section)-nya
+        local sec = self.Section
+        if sec and sec.Members then
+            for i, m in ipairs(sec.Members) do
+                if m == self then
+                    table.remove(sec.Members, i)
+                    break
+                end
+            end
+        end
+    end
+end
+
+--  v2.2.1: daftarkan elemen sebagai anggota menu (section) yang sedang aktif.
+--  Dipanggil oleh _track (elemen interaktif) dan AddLabel/AddParagraph
+--  (elemen statis) — semua fitur yang dibuat SETELAH AddSection otomatis
+--  tergabung ke menu itu, sehingga bisa di-minimize bersama dengan satu klik
+--  pada judul section-nya.
+function TabClass:_own(element)
+    local sec = self._currentSection
+    if sec and sec.Members then
+        element.Section = sec
+        table.insert(sec.Members, element)
+        -- menu sedang di-minimize → elemen baru langsung tersembunyi
+        if sec.Collapsed and element.Instance then
+            element.Instance.Visible = false
+        end
     end
 end
 
@@ -1355,21 +1402,39 @@ function TabClass:ApplyFilter(query)
     query = tostring(query or "")
     self.FilterQuery = query
     local needle = query:lower()
-    if needle == "" then
-        for _, el in ipairs(self.Elements) do
-            if el.Instance then
-                el.Instance.Visible = true
-            end
-        end
-        return
-    end
+    local filtering = needle ~= ""
     for _, el in ipairs(self.Elements) do
         if el.Instance then
             local name = el.Name
-            if name == nil or name == "" then
-                el.Instance.Visible = true
+            local visible
+            if not filtering or name == nil or name == "" then
+                visible = true
             else
-                el.Instance.Visible = string.find(tostring(name):lower(), needle, 1, true) ~= nil
+                visible = string.find(tostring(name):lower(), needle, 1, true) ~= nil
+            end
+            -- v2.2.1: menu sedang di-minimize → anggotanya TETAP tersembunyi
+            -- (pencarian tidak membuka lipatan menu)
+            if el.Section and el.Section.Collapsed then
+                visible = false
+            end
+            el.Instance.Visible = visible
+        end
+    end
+    -- v2.2.1: saat mencari, judul menu tanpa anggota yang cocok ikut
+    -- disembunyikan supaya hasil pencarian lebih rapat
+    for _, sec in ipairs(self.Sections) do
+        if sec.Instance then
+            if not filtering then
+                sec.Instance.Visible = true
+            else
+                local anyVisible = false
+                for _, m in ipairs(sec.Members) do
+                    if m.Instance and m.Instance.Visible then
+                        anyVisible = true
+                        break
+                    end
+                end
+                sec.Instance.Visible = anyVisible
             end
         end
     end
@@ -1415,6 +1480,14 @@ function TabClass:Remove()
     end
     for _, el in ipairs(elements) do
         el:Remove()
+    end
+    -- v2.2.1: bersihkan registry semua menu (section) di tab ini
+    local sections = {}
+    for _, sec in ipairs(self.Sections) do
+        table.insert(sections, sec)
+    end
+    for _, sec in ipairs(sections) do
+        sec:Remove()
     end
     self.Registry:Clean()
     if self.Button and self.Button.Parent then
@@ -2622,8 +2695,13 @@ function TabClass:AddColorPicker(cfg)
 end
 
 --// ─────────────────────────── Elemen: SECTION ──────────────────────────────
+--  v2.2.1: MENU BISA DI-MINIMIZE — klik judul section untuk menutup/membuka
+--  semua fitur di dalamnya (sampai section berikutnya). Chevron ▾ berputar
+--  jadi ▸ sebagai penanda. Elemen yang dibuat SETELAH AddSection otomatis
+--  menjadi anggota menu tersebut (via _own / _track).
 function TabClass:AddSection(cfg)
     cfg = cfg or {}
+    local reg = Registry.new()
     local holder = Create("Frame", {
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 0, 0),
@@ -2636,18 +2714,43 @@ function TabClass:AddSection(cfg)
         SortOrder = Enum.SortOrder.LayoutOrder,
         Parent = holder,
     })
-    Create("TextLabel", {
+
+    -- baris judul = TextButton — area ketuk selarik judul, nyaman di mobile
+    local row = Create("TextButton", {
+        Name = "SectionHeader",
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 14),
+        AutoButtonColor = false,
+        BorderSizePixel = 0,
+        Size = UDim2.new(1, 0, 0, 20),
+        Text = "",
+        LayoutOrder = 1,
+        Parent = holder,
+    })
+    local title = Create("TextLabel", {
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(1, -18, 1, 0),
         Text = cfg.Name or "Section",
         Font = Theme.FontBold,
         TextSize = 12,
         TextColor3 = Theme.AccentGold,
         TextXAlignment = Enum.TextXAlignment.Left,
         TextTruncate = Enum.TextTruncate.AtEnd,
-        LayoutOrder = 1,
-        Parent = holder,
+        Parent = row,
     })
+    -- chevron penanda lipatan: ▾ (terbuka) ↔ ▸ (termiminize, rotasi -90°)
+    local chevron = Create("TextLabel", {
+        BackgroundTransparency = 1,
+        AnchorPoint = Vector2.new(1, 0.5),
+        Position = UDim2.new(1, -2, 0.5, 0),
+        Size = UDim2.new(0, 14, 1, 0),
+        Text = "▾",
+        Font = Theme.FontBold,
+        TextSize = 12,
+        TextColor3 = Theme.AccentGold,
+        Parent = row,
+    })
+
     -- keterangan kecil di bawah judul section
     local setDesc = attachDescription(holder, 2)
     setDesc(cfg.Description)
@@ -2663,12 +2766,92 @@ function TabClass:AddSection(cfg)
         NumberSequenceKeypoint.new(1, 0.85),
     }))
 
-    local el = { Type = "Section", Instance = holder }
+    local el = {
+        Type = "Section",
+        Name = cfg.Name,
+        Instance = holder,
+        Registry = reg,
+        Members = {}, -- elemen yang dibuat setelah section ini
+        Collapsed = false,
+    }
+
+    -- Terapkan lipatan: sembunyikan/tampilkan semua anggota dalam SATU pass
+    -- (tanpa tween per elemen — hemat performa). Daftar anggota yang sudah
+    -- di-Remove dibersihkan otomatis saat lewat.
+    local function applyVisibility()
+        local members = el.Members
+        for i = #members, 1, -1 do
+            local m = members[i]
+            if not m.Instance or not m.Instance.Parent then
+                table.remove(members, i) -- anggota sudah dihancurkan
+            else
+                m.Instance.Visible = not el.Collapsed
+            end
+        end
+    end
+
+    function el:SetCollapsed(collapsed)
+        collapsed = collapsed == true
+        if el.Collapsed == collapsed then
+            return
+        end
+        el.Collapsed = collapsed
+        Tween(reg, chevron, TI_HOVER, { Rotation = collapsed and -90 or 0 })
+        applyVisibility()
+    end
+
+    function el:Toggle()
+        self:SetCollapsed(not el.Collapsed)
+    end
+
+    function el:IsCollapsed()
+        return el.Collapsed
+    end
+
+    el.SetDescription = function(_, text)
+        setDesc(text)
+    end
+
+    reg:Connect(row.Activated, function()
+        el:Toggle()
+    end)
+
+    -- hover hemat: hanya di perangkat bermouse (mobile tak buat tween percuma)
+    if HOVER_FOR_MOUSE then
+        reg:Connect(row.MouseEnter, function()
+            Tween(reg, title, TI_HOVER, { TextColor3 = Theme.Text })
+            Tween(reg, chevron, TI_HOVER, { TextColor3 = Theme.Text })
+        end)
+        reg:Connect(row.MouseLeave, function()
+            Tween(reg, title, TI_HOVER, { TextColor3 = Theme.AccentGold })
+            Tween(reg, chevron, TI_HOVER, { TextColor3 = Theme.AccentGold })
+        end)
+    end
+
     function el:Remove()
+        -- anggota dikembalikan terlihat & lepas dari menu ini
+        el.Collapsed = false
+        applyVisibility()
+        for _, m in ipairs(el.Members) do
+            m.Section = nil
+        end
+        el.Members = {}
+        reg:Clean()
         if self.Instance and self.Instance.Parent then
             self.Instance:Destroy()
         end
     end
+
+    -- section baru = menu aktif: elemen SELANJUTNYA jadi anggotanya
+    self._currentSection = el
+    table.insert(self.Sections, el)
+
+    -- cfg.Collapsed = true → menu dibuat langsung terlipat
+    if cfg.Collapsed then
+        el.Collapsed = true
+        chevron.Rotation = -90
+    end
+
     return el
 end
 
@@ -2700,6 +2883,9 @@ function TabClass:AddLabel(cfg)
             self.Instance:Destroy()
         end
     end
+    -- v2.2.1: label ikut menjadi anggota menu (section) aktif → bisa
+    -- di-minimize bersama fitur lain di menu yang sama
+    self:_own(el)
     return el
 end
 
@@ -2756,6 +2942,8 @@ function TabClass:AddParagraph(cfg)
             self.Instance:Destroy()
         end
     end
+    -- v2.2.1: paragraph ikut menjadi anggota menu (section) aktif
+    self:_own(el)
     return el
 end
 
@@ -3893,11 +4081,20 @@ return ThorUi
                 end,
         })
 
+        -- v2.2.1: MENU (section) BISA DI-MINIMIZE — klik judulnya untuk
+        -- melipat semua fitur di dalamnya (chevron ▾ ↔ ▸):
+        local menuLanjutan = Tab:AddSection({
+                Name = "MENU LANJUTAN (klik untuk minimize)",
+                Collapsed = true, -- dibuat dalam keadaan terlipat
+        })
+        Tab:AddLabel({ Text = "Menu ini dibuat TERLIPAT — klik judulnya untuk membuka." })
+
         Tab2:AddParagraph({
                 Title = "Tentang ThorUi v2",
                 Text = "Layout modern dengan tema Dewa Petir: sidebar tab "
                         .. "ber-ikon, search bar untuk filter elemen, splash screen, "
-                        .. "ColorPicker, dan Confirm dialog. Drag window dari logo/sidebar "
+                        .. "ColorPicker, Confirm dialog, dan judul section (menu) yang "
+                        .. "bisa DIKLIK untuk minimize. Drag window dari logo/sidebar "
                         .. "atau header, resize dari sudut kanan bawah.",
         })
 
@@ -3908,6 +4105,8 @@ return ThorUi
         -- godMode:Set(true, false)  → set nilai TANPA callback
         -- godMode:Get()             → ambil nilai
         -- godMode:SetDescription("teks keterangan baru")
+        -- menuLanjutan:Toggle()  → minimize/buka menu dari script
+        -- menuLanjutan:SetCollapsed(false) → buka paksa
         -- Window:Toggle() / Window:Destroy()
         -- Window:SetTitle("Judul Baru")
         -- ThorUi:Destroy()          → hancurkan seluruh UI + bersihkan memory

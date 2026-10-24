@@ -1,12 +1,12 @@
 # ⚡ ThorUi v2 — Roblox UI Library bertema Dewa Petir
 
 > UI library untuk Roblox dengan tema **Thor / Dewa Petir**: gelap, snappy, dan elektrik.
-> **v2.2.0: OPTIMASI PERFORMA — UI dibikin seringan mungkin: pengukur teks ber-cache (`GetTextSize` hanya saat teks/lebar benar-benar berubah), re-ukur digabung maksimal 1 pass per frame, tween otomatis keluar dari registry saat selesai (dulu menumpuk ribuan entri mati), hover card hanya di perangkat bermouse, search debounce 0.1 detik + rebranding total (desain 100% original ThorUi)** + v2.1.5 hapus "kotak abu-abu" di belakang nilai slider/dropdown + v2.1.4 fix gradien kotor (UIGradient = TINT) + v2.1.3 fix error fatal `'Value' is not a valid member of UDim'` — sidebar tab, search bar, splash screen, ColorPicker, Confirm dialog.
+> **v2.2.1: MENU (SECTION) BISA DI-MINIMIZE — klik judulnya untuk melipat semua fitur di dalamnya (`Collapsed = true`, `Section:Toggle()` / `:SetCollapsed()` / `:IsCollapsed()`)** + v2.2.0: OPTIMASI PERFORMA — UI dibikin seringan mungkin: pengukur teks ber-cache (`GetTextSize` hanya saat teks/lebar benar-benar berubah), re-ukur digabung maksimal 1 pass per frame, tween otomatis keluar dari registry saat selesai (dulu menumpuk ribuan entri mati), hover card hanya di perangkat bermouse, search debounce 0.1 detik + rebranding total (desain 100% original ThorUi)** + v2.1.5 hapus "kotak abu-abu" di belakang nilai slider/dropdown + v2.1.4 fix gradien kotor (UIGradient = TINT) + v2.1.3 fix error fatal `'Value' is not a valid member of UDim'` — sidebar tab, search bar, splash screen, ColorPicker, Confirm dialog.
 > Dukungan penuh **PC & Mobile** · Window *draggable* & *resizable* · **100% murni script** (tanpa Asset ID eksternal) · **Anti memory-leak**
 
 | | |
 |---|---|
-| **Versi** | 2.2.0 |
+| **Versi** | 2.2.1 |
 | **Tipe** | ModuleScript tunggal (Luau), tanpa dependensi |
 | **Platform** | PC (Mouse + Keyboard) & Mobile (Touch) |
 | **Aset** | `Instance.new` / `UICorner` / `UIStroke` / `UIGradient` saja — anti asset takedown |
@@ -52,6 +52,15 @@
 - **Gesture source-lock menyeluruh** — drag window, resize, slider, dan ikon ⚡ mengunci sumber input saat gesture dimulai: di perangkat *hybrid* (PC layar sentuh / tablet + mouse) posisi mouse yang menetap tidak lagi bikin UI meloncat; jari kedua tidak mengganggu drag yang sedang berjalan.
 - **Sentuhan mobile makin nyaman** — nilai slider tidak terpotong (`TextTruncate`), baris opsi dropdown 24→28px, kartu Confirm dialog auto-fit di layar sempit.
 
+### Baru di v2.2.1 (menu bisa di-minimize — dari permintaan: "di dalam menu ada fitur, tolong tambahkan minimize menu biar lebih rapi")
+
+- **Judul section = tombol lipat** — klik judul menu (mis. "PENGATURAN KARAKTER") untuk menutup/membuka **semua fitur di dalamnya** sekaligus (sampai section berikutnya); chevron `▾` berputar menjadi `▸` sebagai penanda, dan judul section lain tetap terlihat agar navigasi tidak terkunci. Cocok untuk tab dengan banyak fitur — daftar jadi jauh lebih rapi.
+- **Anggota otomatis** — elemen apa pun (Button/Toggle/Slider/Dropdown/TextInput/Keybind/ColorPicker/Label/Paragraph) yang dibuat **setelah** `AddSection` otomatis menjadi anggota menu tersebut; tidak perlu mendaftarkan apa pun secara manual.
+- **Mulai terlipat** — `Tab:AddSection({ Name = "...", Collapsed = true })` membuat menu langsung dalam keadaan tertutup; elemen yang ditambahkan belakangan pun ikut tersembunyi otomatis.
+- **API programatik** — `Section:SetCollapsed(bool)`, `Section:Toggle()`, `Section:IsCollapsed()`, plus `SetDescription(teks)` seperti elemen lain.
+- **Search-aware** — pencarian **tidak membuka lipatan**: anggota menu yang sedang di-minimize tetap tersembunyi walau cocok dengan kata kunci; judul menu tanpa anggota yang cocok ikut disembunyikan supaya hasil pencarian lebih rapat.
+- **Tetap ringan** — lipatan diterapkan lewat satu pass `Visible` tanpa tween per elemen, hover judul hanya di perangkat bermouse, dan registry section ikut dibersihkan saat `Section:Remove()` / `Tab:Remove()` / `Window:Destroy()` (anti memory-leak).
+
 ### Optimasi di v2.2.0 (performa — dari laporan: "masih terasa berat, banyak rendutan")
 
 - **Pengukur teks ber-cache** — sumber "rendutan" utama: sejak v2.1.2 setiap label keterangan/paragraf/notifikasi terhubung ke sinyal `AbsoluteSize` parent, sehingga **resize window / rotasi layar memicu `GetTextSize` per label per frame** untuk semua elemen, lalu penulisan `Size` memicu re-layout berantai (card `AutomaticSize.Y` → holder → `ScrollingFrame` `AutomaticCanvasSize`). Kini pengukuran **ber-cache**: teks & lebar tidak berubah = nol ukur ulang, dan `Size` hanya ditulis bila tinggi benar-benar berubah (memutus reaksi berantai layout ↔ signal).
@@ -93,6 +102,7 @@
 - **Window draggable** — dari baris logo sidebar atau header kanan, dengan **mouse maupun sentuhan** via `UserInputService`.
 - **Window resizable** — drag-handle di **sudut kanan bawah** window, dilengkapi `UISizeConstraint` (default minimal `400 × 250`) + auto-clamp untuk layar kecil.
 - **Responsif otomatis** — ukuran window default menyesuaikan viewport; sidebar auto icon-only saat sempit.
+- **Menu (section) bisa di-minimize** — klik judulnya untuk melipat semua fitur di dalamnya; `Collapsed = true` untuk mulai terlipat.
 - **Floating toggle ⚡** — tombol petir melayang yang bisa **digeser bebas ke mana pun** dan tetap di posisi terakhir (di-clamp agar tidak keluar layar; perfect untuk Mobile).
 - **Keybind toggle UI** — default `RightControl`, bisa diganti kapan saja.
 - **Konten tak terbatas** — tiap tab pakai `ScrollingFrame` + `AutomaticCanvasSize`.
@@ -303,9 +313,26 @@ Tab:AddKeybind({
 })
 ```
 
-#### `Tab:AddSection({ Name })` · `Tab:AddLabel({ Text })` · `Tab:AddParagraph({ Title, Text })`
+#### `Tab:AddSection({ Name, Description, Collapsed })` · `Tab:AddLabel({ Text })` · `Tab:AddParagraph({ Title, Text })`
 
 Elemen statis untuk menyusun halaman: judul seksi bergaris, label teks, dan paragraf multi-baris.
+
+**v2.2.1 — Section kini berfungsi sebagai MENU yang bisa di-minimize**: klik judulnya untuk melipat/membuka semua elemen yang dibuat setelahnya (sampai `AddSection` berikutnya). Elemen apa pun yang dibuat setelah `AddSection` otomatis menjadi anggota menu itu.
+
+```lua
+local menu = Tab:AddSection({ Name = "PENGATURAN KARAKTER", Collapsed = false })
+
+menu:Toggle()              -- lipat/buka menu
+menu:SetCollapsed(true)     -- minimize paksa
+menu:IsCollapsed()          -- cek status lipatan
+menu:SetDescription("teks keterangan di bawah judul menu")
+```
+
+| Konfigurasi `AddSection` | Tipe | Default | Keterangan |
+|---|---|---|---|
+| `Name` | `string` | `"Section"` | Judul menu (klik untuk minimize). |
+| `Description` | `string` | `nil` | Keterangan kecil di bawah judul. |
+| `Collapsed` | `boolean` | `false` | `true` → menu dibuat langsung terlipat. |
 
 ---
 

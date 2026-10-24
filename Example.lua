@@ -25,6 +25,7 @@ local Window = ThorUi:CreateWindow({
 local Tab = Window:CreateTab({ Name = "Main", Icon = "⚡" })
 local Tab2 = Window:CreateTab({ Name = "Info", Icon = "🌩" })
 
+-- v2.2.1: judul menu (section) bisa DIKLIK untuk minimize/membuka isinya:
 Tab:AddSection({ Name = "MENU UTAMA" })
 
 Tab:AddButton({
@@ -108,6 +109,11 @@ Tab:AddButton({
         end,
 })
 
+-- v2.2.1: menu kedua — Collapsed = true → dibuat langsung TERLIPAT; klik
+-- judulnya untuk membuka. Elemen setelah baris ini jadi anggota menu ini.
+local menuLanjutan = Tab:AddSection({ Name = "MENU LANJUTAN", Collapsed = true })
+Tab:AddLabel({ Text = "Menu ini dibuat terlipat — klik judulnya untuk membuka." })
+
 Tab2:AddParagraph({
         Title = "Tentang ThorUi v2",
         Text = "Layout modern dengan tema Dewa Petir: sidebar tab "
@@ -120,6 +126,7 @@ ThorUi:Notify({ Title = "⚡ Petir Menyambar", Content = "Script berhasil dimuat
 
 -- Kontrol programatik:
 -- godMode:Set(true)         -> set nilai + panggil callback
+-- menuLanjutan:Toggle()     -> minimize/buka menu dari script
 -- godMode:Set(true, false)  -> set nilai TANPA callback
 -- godMode:Get()             -> ambil nilai
 -- Window:Toggle() / Window:Destroy()
