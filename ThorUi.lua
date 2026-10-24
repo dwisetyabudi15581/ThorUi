@@ -1,8 +1,8 @@
 --════════════════════════════════════════════════════════════════════════════
---  ⚡  ThorUi v2.1.3 — Roblox UI Library bertema Dewa Petir (Thor / Petir)
+--  ⚡  ThorUi v2.1.4 — Roblox UI Library bertema Dewa Petir (Thor / Petir)
 --      Layout & UX terinspirasi Wind UI · tema tetap 100% Thor ⚡
 --  ──────────────────────────────────────────────────────────────────────────
---  Versi     : 2.1.3 (ModuleScript tunggal, tanpa dependensi eksternal)
+--  Versi     : 2.1.4 (ModuleScript tunggal, tanpa dependensi eksternal)
 --  Platform  : PC & Mobile — draggable, resizable, cross-platform
 --
 --  BARU DI v2.0.0 (gaya Wind UI)
@@ -61,6 +61,25 @@
 --                         elemen dibuat normal & pengukuran anti-ketimpa
 --                         v2.1.2 berjalan sebagaimana mestinya.
 --
+--  FIX DI v2.1.4 (dari screenshot user: "masih ketimpa warna abu-abu")
+--  • FIX UIGradient TINT : UIGradient MENGALIKAN warna dengan
+--                         BackgroundColor3 (tint — BUKAN menimpa!). Semua
+--                         frame ber-gradien yang background-nya BUKAN
+--                         putih selama ini render SALAH: sidebar & header
+--                         NYARIS HITAM RGB(1,2,4), fill slider BIRU
+--                         REDUP→HIJAU (emas tak pernah muncul karena R
+--                         background = 0), tombol ⚡ & lingkaran splash
+--                         nyaris hitam, garis petir hijau gelap. Kini
+--                         SEMUA frame ber-gradien berlatar PUTIH → warna
+--                         gradien tampil persis tema (navy, emas, biru).
+--  • FIX fill slider      : gradien biru→emas selalu melintas zona abu
+--                         kehijauan (interpolasi sRGB) — diganti gradien
+--                         selaras-hue biru→biru muda vertikal (efek
+--                         "kilat menyala") + stroke KNOB emas. Slider
+--                         kini cerah, tanpa jejak abu-abu/kehijauan.
+--  • FIX tombol Confirm   : gradien biru→emas (berefek kotor sama)
+--                         diganti solid Electric Blue + teks putih.
+--
 --  FITUR LANJUTAN
 --  • Tema Lightning & Thunder : Midnight Blue + Electric Blue / Lightning Gold
 --  • Animasi snappy ala kilat : TweenService (Back / Quart / Quad, cepat)
@@ -117,7 +136,7 @@ local LocalPlayer = Players.LocalPlayer
 
 --// ─────────────────────────────── Library ──────────────────────────────────
 local ThorUi = {
-    Version = "2.1.3",
+    Version = "2.1.4",
 }
 
 --// ──────────────────────────────── Tema ────────────────────────────────────
@@ -558,7 +577,8 @@ function ThorUi:Notify(cfg)
     -- bar petir di sisi kiri
     local bar = Create("Frame", {
         Size = UDim2.new(0, 3, 1, 0),
-        BackgroundColor3 = Theme.Accent,
+        -- PUTIH: UIGradient menint/mengalikan → warna gradien tampil murni
+        BackgroundColor3 = Theme.White,
         BorderSizePixel = 0,
         ZIndex = 3,
         Parent = notif,
@@ -730,7 +750,8 @@ local function ensureToggleButton()
         -- posisi awal = titik TENGAH ikon: tepi kanan 16px, 72% tinggi layar
         Position = UDim2.new(1, -16 - TOGGLE_SIZE * 0.5, 0.72, 0),
         Size = UDim2.fromOffset(TOGGLE_SIZE, TOGGLE_SIZE),
-        BackgroundColor3 = Theme.BackgroundAlt,
+        -- PUTIH: agar gradien Card→Alt tampil murni (bukan tertint gelap)
+        BackgroundColor3 = Theme.White,
         BorderSizePixel = 0,
         Visible = _state.ToggleVisible,
         Parent = gui,
@@ -946,7 +967,8 @@ local function playSplash(onDone)
     -- lingkaran logo ⚡ (pop memantul saat muncul)
     local circle = Create("Frame", {
         Size = UDim2.fromOffset(88, 88),
-        BackgroundColor3 = Theme.BackgroundAlt,
+        -- PUTIH: agar gradien Card→BackgroundAlt tampil murni (bukan tertint)
+        BackgroundColor3 = Theme.White,
         BorderSizePixel = 0,
         LayoutOrder = 1,
         Parent = holder,
@@ -1000,12 +1022,14 @@ local function playSplash(onDone)
     Corner(barTrack, UDim.new(1, 0))
     local barFill = Create("Frame", {
         Size = UDim2.new(0, 0, 1, 0),
-        BackgroundColor3 = Theme.Accent,
+        BackgroundColor3 = Theme.White, -- PUTIH: UIGradient menint -> gradien murni
         BorderSizePixel = 0,
         Parent = barTrack,
     })
     Corner(barFill, UDim.new(1, 0))
-    Gradient(barFill, Theme.Accent, Theme.AccentGold, 0)
+    -- FIX v2.1.4: gradien selaras-hue biru->biru muda (vertikal); gradien
+    -- biru->emas lama ternyata tertint Accent sehingga tampak HIJAU
+    Gradient(barFill, Color3.fromRGB(0, 170, 235), Color3.fromRGB(90, 220, 255), 90)
 
     local status = Create("TextLabel", {
         BackgroundTransparency = 1,
@@ -1087,7 +1111,7 @@ function TabClass.new(window, cfg)
         AnchorPoint = Vector2.new(0, 0.5),
         Position = UDim2.new(0, 0, 0.5, 0),
         Size = UDim2.new(0, 3, 0, 0),
-        BackgroundColor3 = Theme.Accent,
+        BackgroundColor3 = Theme.White, -- PUTIH: gradien emas->biru murni
         BorderSizePixel = 0,
         Parent = btn,
     })
@@ -1552,12 +1576,16 @@ function TabClass:AddSlider(cfg)
     Corner(track, UDim.new(1, 0))
     local fill = Create("Frame", {
         Size = UDim2.new(0, 0, 1, 0),
-        BackgroundColor3 = Theme.Accent,
+        BackgroundColor3 = Theme.White, -- PUTIH: UIGradient menint -> gradien murni
         BorderSizePixel = 0,
         Parent = track,
     })
     Corner(fill, UDim.new(1, 0))
-    Gradient(fill, Theme.Accent, Theme.AccentGold, 0)
+    -- FIX v2.1.4: gradien biru->emas (a) tertint background Accent sehingga
+    -- emas tak pernah muncul & bar tampak biru redup->HIJAU (terverifikasi
+    -- piksel screenshot user), (b) interpolasi sRGB biru->emas selalu
+    -- melintas abu kehijauan. Diganti gradien selaras-hue 'kilat menyala'.
+    Gradient(fill, Color3.fromRGB(0, 170, 235), Color3.fromRGB(90, 220, 255), 90)
     local knob = Create("Frame", {
         AnchorPoint = Vector2.new(0.5, 0.5),
         Position = UDim2.new(0, 0, 0.5, 0),
@@ -1568,7 +1596,7 @@ function TabClass:AddSlider(cfg)
         Parent = track,
     })
     Corner(knob, UDim.new(1, 0))
-    Stroke(knob, { Color = Theme.Accent, Thickness = 1, Transparency = 0.1 })
+    Stroke(knob, { Color = Theme.AccentGold, Thickness = 1, Transparency = 0.1 }) -- v2.1.4: emas
     local knobScale = Create("UIScale", { Parent = knob })
 
     -- area sentuh transparan menutupi SELURUH baris slider (ZIndex di atas
@@ -2496,7 +2524,7 @@ function TabClass:AddSection(cfg)
     local setDesc = attachDescription(holder, 2)
     setDesc(cfg.Description)
     local line = Create("Frame", {
-        BackgroundColor3 = Theme.AccentGold,
+        BackgroundColor3 = Theme.White, -- PUTIH: gradien emas->biru murni
         BorderSizePixel = 0,
         Size = UDim2.new(1, 0, 0, 1),
         LayoutOrder = 3,
@@ -2665,7 +2693,7 @@ function ThorUi:CreateWindow(cfg)
     local sidebar = Create("Frame", {
         Name = "Sidebar",
         Size = UDim2.new(0, SIDEBAR_W, 1, 0),
-        BackgroundColor3 = Theme.BackgroundAlt,
+        BackgroundColor3 = Theme.White, -- PUTIH: gradien navy murni (bukan RGB(1,2,4)!)
         BorderSizePixel = 0,
         Active = true,
         Parent = frame,
@@ -2767,7 +2795,7 @@ function ThorUi:CreateWindow(cfg)
     local header = Create("Frame", {
         Name = "Header",
         Size = UDim2.new(1, 0, 0, HEADER_H),
-        BackgroundColor3 = Theme.BackgroundAlt,
+        BackgroundColor3 = Theme.White, -- PUTIH: gradien navy murni
         BorderSizePixel = 0,
         Parent = right,
     })
@@ -2956,7 +2984,7 @@ function ThorUi:CreateWindow(cfg)
     local thunderLine = Create("Frame", {
         Position = UDim2.new(0, 0, 0, HEADER_H),
         Size = UDim2.new(1, 0, 0, 1),
-        BackgroundColor3 = Theme.Accent,
+        BackgroundColor3 = Theme.White, -- PUTIH: garis petir emas->biru murni
         BorderSizePixel = 0,
         ZIndex = 2,
         Parent = right,
@@ -3520,7 +3548,9 @@ function WindowClass:Confirm(cfg)
     local confirmBtn = makeDialogBtn(2, Theme.Accent, Theme.White, cfg.ConfirmText or "Konfirmasi", function()
         close(true)
     end)
-    Gradient(confirmBtn, Theme.Accent, Theme.AccentGold, 15)
+    -- FIX v2.1.4: gradien confirmBtn DIHAPUS — selain tertint (hover
+    -- men-tween bg ke CardHover -> gradien ikut berubah kotor), interpolasi
+    -- biru->emas juga melintas abu kehijauan. Solid Electric Blue: bersih.
 
     reg:Connect(bgBtn.Activated, function()
         close(false)

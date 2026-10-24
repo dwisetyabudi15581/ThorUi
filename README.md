@@ -1,12 +1,12 @@
 # ⚡ ThorUi v2 — Roblox UI Library bertema Dewa Petir
 
 > UI library untuk Roblox dengan tema **Thor / Dewa Petir**: gelap, snappy, dan elektrik.
-> **v2.1.3: FIX error fatal "'Value' is not a valid member of UDim" (v2.1.2) yang menggagalkan pembuatan elemen ber-Description + teks keterangan/paragraf tidak lagi ketimpa elemen di bawahnya + Description ala Wind UI di semua elemen** — sidebar tab, search bar, splash screen, ColorPicker, Confirm dialog.
+> **v2.1.4: FIX seluruh warna gradien kotor — UIGradient ternyata TINT (mengalikan warna background, bukan menimpanya): sidebar & header sempat nyaris HITAM dan fill slider tampak HIJAU; kini semua gradien tampil murni sesuai tema** + v2.1.3 fix error fatal `'Value' is not a valid member of UDim` + teks keterangan tidak ketimpa + Description ala Wind UI di semua elemen — sidebar tab, search bar, splash screen, ColorPicker, Confirm dialog.
 > Dukungan penuh **PC & Mobile** · Window *draggable* & *resizable* · **100% murni script** (tanpa Asset ID eksternal) · **Anti memory-leak**
 
 | | |
 |---|---|
-| **Versi** | 2.1.3 |
+| **Versi** | 2.1.4 |
 | **Tipe** | ModuleScript tunggal (Luau), tanpa dependensi |
 | **Platform** | PC (Mouse + Keyboard) & Mobile (Touch) |
 | **Aset** | `Instance.new` / `UICorner` / `UIStroke` / `UIGradient` saja — anti asset takedown |
@@ -51,6 +51,13 @@
 - **FIX ColorPicker slider hue via sentuhan** — dulu slider hue hanya bisa digeser mouse; kini jari juga bisa (filter gesture source-lock).
 - **Gesture source-lock menyeluruh** — drag window, resize, slider, dan ikon ⚡ mengunci sumber input saat gesture dimulai: di perangkat *hybrid* (PC layar sentuh / tablet + mouse) posisi mouse yang menetap tidak lagi bikin UI meloncat; jari kedua tidak mengganggu drag yang sedang berjalan.
 - **Sentuhan mobile makin nyaman** — nilai slider tidak terpotong (`TextTruncate`), baris opsi dropdown 24→28px, kartu Confirm dialog auto-fit di layar sempit.
+
+### Perbaikan di v2.1.4 (fix warna gradien kotor — akar "warna abu-abu")
+
+- **FIX UIGradient TINT (akar masalah "tulisannya ketimpa sama warna abu-abu")** — di Roblox, `UIGradient` **mengalikan (menint) warnanya dengan `BackgroundColor3`** — ia TIDAK menimpa warna background. Seluruh frame ber-gradien yang background-nya bukan putih selama ini (sejak v2.0.0) render salah dan tampak kotor/abu-abu: **sidebar & header nyaris hitam `RGB(1,2,4)`** (bukan navy), **fill slider biru redup → HIJAU** `RGB(0,145,9)` (emas tidak pernah muncul karena channel R background Accent = 0), tombol ⚡ melayang & lingkaran splash nyaris hitam, garis petir hijau gelap. Kini SEMUA frame ber-gradien diberi **latar putih** sehingga hasil kali = warna gradien murni persis tema.
+- **FIX fill slider cerah "kilat menyala"** — selain tertint, gradien biru→emas secara inheren melintas zona **abu kehijauan** (interpolasi sRGB: titik tengah `(127,192,127)`). Diganti **gradien selaras-hue biru listrik → biru terang (vertikal)** yang selalu cerah tanpa "lumpur", plus **stroke knob emas**. Slider kini: bar biru menyala + bulatan putih bergaris emas — tidak ada lagi jejak abu-abu/kehijauan.
+- **FIX tombol Confirm** — gradien biru→emas-nya dibuang (tertint oleh hover yang men-tween background ke CardHover + melintas abu kehijauan); kini solid Electric Blue + teks putih.
+- **Elemen ikut pulih**: sidebar & header kini gradasi navy `(16,20,32)→(11,14,23)` sebagaimana desain; garis petir & indikator tab emas→biru; bar progress splash biru menyala; tombol ⚡ melayang & lingkaran splash tampil dengan gradasi navy yang benar.
 
 ### Perbaikan di v2.1.3 (hotfix error fatal — dari laporan log console)
 

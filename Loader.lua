@@ -278,7 +278,14 @@ Tab3:AddParagraph({
                 .. "9) v2.1.3: FIX error fatal \"'Value' is not a valid member of\n"
                 .. "   UDim\" (v2.1.2) yang menggagalkan pembuatan elemen ber-\n"
                 .. "   Description di semua perangkat — pengukur tinggi teks kini\n"
-                .. "   memakai .Offset yang benar; elemen dibuat normal kembali.",
+                .. "   memakai .Offset yang benar; elemen dibuat normal kembali.\n"
+                .. "10) v2.1.4: FIX seluruh WARNA GRADIEN KOTOR — UIGradient ternyata\n"
+                .. "    MENGALIKAN (menint) warna background, bukan menimpanya:\n"
+                .. "    sidebar & header sempat nyaris HITAM dan fill slider tampak\n"
+                .. "    HIJAU (emas tak pernah muncul). Kini semua frame ber-gradien\n"
+                .. "    berlatar putih → warna tema tampil murni: sidebar & header\n"
+                .. "    navy, fill slider biru listrik menyala + knob stroke EMAS,\n"
+                .. "    garis petir & indikator tab emas→biru, tombol ⚡ terlihat.",
 })
 
 Tab3:AddSection({ Name = "INFO" })
