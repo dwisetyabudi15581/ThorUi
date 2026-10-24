@@ -1,12 +1,12 @@
 # ⚡ ThorUi v2 — Roblox UI Library bertema Dewa Petir
 
 > UI library untuk Roblox dengan tema **Thor / Dewa Petir**: gelap, snappy, dan elektrik.
-> **v2.0.1: Layout & UX terinspirasi Wind UI** — sidebar tab, search bar, splash screen, ColorPicker, Confirm dialog.
+> **v2.1.0: Layout & UX terinspirasi Wind UI** — sidebar tab, search bar, splash screen, ColorPicker, Confirm dialog.
 > Dukungan penuh **PC & Mobile** · Window *draggable* & *resizable* · **100% murni script** (tanpa Asset ID eksternal) · **Anti memory-leak**
 
 | | |
 |---|---|
-| **Versi** | 2.0.1 |
+| **Versi** | 2.1.0 |
 | **Tipe** | ModuleScript tunggal (Luau), tanpa dependensi |
 | **Platform** | PC (Mouse + Keyboard) & Mobile (Touch) |
 | **Aset** | `Instance.new` / `UICorner` / `UIStroke` / `UIGradient` saja — anti asset takedown |
@@ -30,6 +30,16 @@
 - **Fix minimize terkunci** — saat window di-minimize (tombol `—`), kini muncul tombol **`+` di bawah sidebar** untuk membesarkan kembali ke ukuran semula (ukuran & posisi tersimpan aman, tahan rotasi layar).
 - **Fix error `SetToggleVisible`** — metode `ThorUi:SetToggleVisible()` / `SetKeybind()` / `Toggle()` yang hilang saat port v2 kini tersedia kembali.
 - **Anti UI menumpuk saat re-execute** — ScreenGui ThorUi lama otomatis dibersihkan saat library dimuat ulang, jadi tombol ⚡ & window tidak dobel.
+
+### Perbaikan di v2.1.0 (audit input menyeluruh)
+
+- **FIX ikon ⚡ "loncat-loncat"** — akar masalahnya: posisi awal gesture dihitung dari objek `InputObject` yang **terus termutasi** di touch, sehingga delta selalu 0 — ikon tidak bergeser dan lepas jari malah memicu toggle window. Kini posisi di-*snapshot* sebagai nilai (`Vector3`/`Vector2`) → drag presisi & mulus di mouse maupun jari, anchor ikon tidak pernah diubah saat drag.
+- **Window anti-hilang** — drag window kini di-*clamp*: minimal 56px sisi window dan 30px baris judul selalu tetap terlihat di layar, jadi window tidak bisa tersesat ke luar layar (ala Wind UI).
+- **Tap beruntun makin responsif** — `Show`/`Hide`/`Toggle` kini pakai flag `_closing`: tap ⚡ saat window sedang menutup langsung membatalkan hide dan memunculkan kembali (dulu tap "tertelan").
+- **Slider mobile-friendly** — baris slider ditinggikan 28px + *hit-area* transparan menutupi seluruh baris: tidak perlu membidik track 6px dengan jari; tap di mana pun pada baris langsung mengatur nilai.
+- **Target sentuh lebih besar** — tombol kontrol header (—/✕) 28→32px, handle resize 28→34px, ukuran font ikon kontrol 14→16.
+- **Hygiene memory** — koneksi `Completed` pada efek `Zap`/`popScale` kini ikut terlacak di `Registry` (auto-disconnect saat destroy).
+- **Audit ulang seluruh handler input** — window drag, resize grip, slider, dan ColorPicker sudah benar (delta dihitung dari snapshot nilai); dropdown multi mem-*snapshot* nilai sebelum callback; toggle tap-entuh-card.
 
 ### Fitur inti
 

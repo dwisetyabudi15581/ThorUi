@@ -66,7 +66,7 @@ local LocalPlayer = Players.LocalPlayer
 
 --// ─────────────────────────────── Library ──────────────────────────────────
 local ThorUi = {
-    Version = "2.0.1",
+    Version = "2.1.0",
 }
 
 --// ──────────────────────────────── Tema ────────────────────────────────────
@@ -214,9 +214,14 @@ local function Zap(registry, parent, color, radius)
         registry:Track(tween)
     end
     tween:Play()
-    tween.Completed:Connect(function()
+    local function onZapDone()
         flash:Destroy()
-    end)
+    end
+    if registry then
+        registry:Connect(tween.Completed, onZapDone)
+    else
+        tween.Completed:Connect(onZapDone)
+    end
 end
 
 --  Efek hover standar untuk card interaktif (stroke neon menyala).
@@ -543,9 +548,11 @@ local function toggleWindows()
     if #_state.Windows == 0 then
         return
     end
+    -- window yang sedang proses menutup (_closing) dihitung "tidak terlihat"
+    -- supaya tap cepat berturut-turut langsung membatalkan hide & pop kembali
     local anyVisible = false
     for _, w in ipairs(_state.Windows) do
-        if w.Frame.Visible then
+        if w.Frame.Visible and not w._closing then
             anyVisible = true
             break
         end
@@ -591,8 +598,9 @@ local function ensureToggleButton()
         Text = "",
         AutoButtonColor = false,
         ZIndex = 50,
-        AnchorPoint = Vector2.new(1, 0),
-        Position = UDim2.new(1, -16, 0.72, 0),
+        -- anchor (0,0) permanen: tidak pernah diubah saat drag → tidak pernah loncat
+        AnchorPoint = Vector2.new(0, 0),
+        Position = UDim2.new(1, -16 - TOGGLE_SIZE, 0.72, 0),
         Size = UDim2.fromOffset(TOGGLE_SIZE, TOGGLE_SIZE),
         BackgroundColor3 = Theme.BackgroundAlt,
         BorderSizePixel = 0,
@@ -638,7 +646,7 @@ local function ensureToggleButton()
 
     local function popScale()
         local t1 = Tween(reg, scale, TweenInfo.new(0.07, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Scale = 1.22 })
-        t1.Completed:Connect(function(playback)
+        reg:Connect(t1.Completed, function(playback)
             if playback == Enum.PlaybackState.Completed and btn.Parent then
                 Tween(reg, scale, TweenInfo.new(0.16, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
             end
@@ -646,13 +654,19 @@ local function ensureToggleButton()
     end
 
     -- drag BEBAS + klik (responsif mouse & sentuhan, aman multi-touch)
+    --  FIX v2.1.0 ("loncat-loncat"): posisi awal disimpan sebagai NILAI
+    --  (Vector3/Vector3 disalin saat dibaca). Objek InputObject untuk TOUCH
+    --  adalah objek yang SAMA antara InputBegan & InputChanged dan posisinya
+    --  TERUS termutasi — kalau delta dihitung dari objek (bukan snapshot
+    --  nilai), delta selalu 0 → ikon tidak bergeser & lepas jari malah
+    --  memicu toggle window (terlihat seperti bug loncat-loncat).
     --  • geser → ikon mengikuti jari/mouse & TETAP di posisi terakhir
-    --    (tanpa snap; hanya di-clamp agar tidak keluar layar)
     --  • ketuk (tanpa bergeser > 6px) → buka/tutup semua window
     local dragging = false
     local moved = false
     local startInput = nil
-    local startPos = nil
+    local startVec = nil      -- snapshot NILAI posisi input saat gesture mulai
+    local startOffset = nil   -- snapshot NILAI posisi absolut ikon saat mulai
 
     reg:Connect(btn.InputBegan, function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1
@@ -660,12 +674,12 @@ local function ensureToggleButton()
             dragging = true
             moved = false
             startInput = input
-            -- kunci posisi jadi offset murni (anchor 0,0) agar drag presisi
-            -- dan tidak terpengaruh perubahan ukuran layar (rotasi device)
+            startVec = input.Position -- Vector3 disalin PER NILAI saat dibaca
             local abs = btn.AbsolutePosition
-            btn.AnchorPoint = Vector2.new(0, 0)
-            startPos = UDim2.new(0, abs.X, 0, abs.Y)
-            btn.Position = startPos
+            startOffset = Vector2.new(abs.X, abs.Y)
+            -- kunci posisi jadi offset murni (anchor sudah 0,0 sejak dibuat,
+            -- jadi tidak ada perubahan anchor → tidak ada loncatan visual)
+            btn.Position = UDim2.new(0, startOffset.X, 0, startOffset.Y)
         end
     end)
 
@@ -673,11 +687,11 @@ local function ensureToggleButton()
         if not dragging then
             return
         end
-        -- sentuhan: objek input sama persis; mouse: jenis MouseMovement
+        -- sentuhan: objek sama persis (posisinya termutasi); mouse: MouseMovement
         if input ~= startInput and input.UserInputType ~= Enum.UserInputType.MouseMovement then
             return
         end
-        local delta = input.Position - startInput.Position
+        local delta = input.Position - startVec
         if math.abs(delta.X) > 6 or math.abs(delta.Y) > 6 then
             if not moved then
                 moved = true
@@ -687,8 +701,8 @@ local function ensureToggleButton()
         end
         -- posisi bebas + clamp agar ikon tetap terlihat di dalam layar
         local vp = GetViewport()
-        local nx = math.clamp(startPos.X.Offset + delta.X, 4, math.max(4, vp.X - TOGGLE_SIZE - 4))
-        local ny = math.clamp(startPos.Y.Offset + delta.Y, 4, math.max(4, vp.Y - TOGGLE_SIZE - 4))
+        local nx = math.clamp(startOffset.X + delta.X, 4, math.max(4, vp.X - TOGGLE_SIZE - 4))
+        local ny = math.clamp(startOffset.Y + delta.Y, 4, math.max(4, vp.Y - TOGGLE_SIZE - 4))
         btn.Position = UDim2.new(0, nx, 0, ny)
     end)
 
@@ -1304,9 +1318,11 @@ function TabClass:AddSlider(cfg)
         Parent = row1,
     })
 
+    -- baris slider ditinggikan (28px) + hit-area transparan supaya nyaman
+    -- disentuh jari — bukan cuma track 6px yang harus dibidik (mobile-friendly)
     local row2 = Create("Frame", {
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 18),
+        Size = UDim2.new(1, 0, 0, 28),
         LayoutOrder = 2,
         Parent = card,
     })
@@ -1339,6 +1355,18 @@ function TabClass:AddSlider(cfg)
     Corner(knob, UDim.new(1, 0))
     Stroke(knob, { Color = Theme.Accent, Thickness = 1, Transparency = 0.1 })
     local knobScale = Create("UIScale", { Parent = knob })
+
+    -- area sentuh transparan menutupi SELURUH baris slider (ZIndex di atas
+    -- track & knob) — drag/ tap dari mana pun di baris tetap terbaca
+    local hit = Create("TextButton", {
+        Name = "SliderHit",
+        Text = "",
+        AutoButtonColor = false,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        ZIndex = 3,
+        Parent = row2,
+    })
 
     local state = {
         Min = cfg.Min or 0,
@@ -1399,13 +1427,7 @@ function TabClass:AddSlider(cfg)
         updateFromX(input.Position.X)
     end
 
-    reg:Connect(track.InputBegan, function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-            or input.UserInputType == Enum.UserInputType.Touch then
-            beginSlide(input)
-        end
-    end)
-    reg:Connect(knob.InputBegan, function(input)
+    reg:Connect(hit.InputBegan, function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1
             or input.UserInputType == Enum.UserInputType.Touch then
             beginSlide(input)
@@ -2559,6 +2581,7 @@ function ThorUi:CreateWindow(cfg)
         SearchBox = searchBox,
         Tabs = {},
         Collapsed = false,
+        _closing = false,
         _activeTab = nil,
         _minSize = minSize,
         _savedAbs = nil,
@@ -2586,7 +2609,7 @@ function ThorUi:CreateWindow(cfg)
             AutoButtonColor = false,
             AnchorPoint = Vector2.new(1, 0.5),
             Position = UDim2.new(1, offsetX, 0.5, 0),
-            Size = UDim2.fromOffset(28, 28),
+            Size = UDim2.fromOffset(32, 32),
             BackgroundColor3 = Theme.Card,
             BackgroundTransparency = 0.4,
             BorderSizePixel = 0,
@@ -2599,7 +2622,7 @@ function ThorUi:CreateWindow(cfg)
             Size = UDim2.new(1, 0, 1, 0),
             Text = text,
             Font = Theme.FontBold,
-            TextSize = 14,
+            TextSize = 16,
             TextColor3 = Theme.TextDim,
             Parent = btn,
         })
@@ -2613,12 +2636,12 @@ function ThorUi:CreateWindow(cfg)
         return btn, lbl
     end
 
-    local collapseBtn, collapseLabel = makeControl("—", -64, Theme.AccentGold, function()
+    local collapseBtn, collapseLabel = makeControl("—", -74, Theme.AccentGold, function()
         Zap(reg, collapseBtn, Theme.AccentGold, 8)
         self:SetCollapsed(not self.Collapsed)
     end)
     self.CollapseLabel = collapseLabel
-    local closeBtn = makeControl("✕", -34, Theme.Danger, function()
+    local closeBtn = makeControl("✕", -38, Theme.Danger, function()
         Zap(reg, closeBtn, Theme.Danger, 8)
         self:Hide()
     end)
@@ -2703,7 +2726,7 @@ function ThorUi:CreateWindow(cfg)
         AutoButtonColor = false,
         AnchorPoint = Vector2.new(1, 1),
         Position = UDim2.new(1, -2, 1, -2),
-        Size = UDim2.fromOffset(28, 28),
+        Size = UDim2.fromOffset(34, 34),
         BackgroundTransparency = 1,
         ZIndex = 5,
         Parent = frame,
@@ -2764,10 +2787,23 @@ function ThorUi:CreateWindow(cfg)
     reg:Connect(UserInputService.InputChanged, function(input)
         if dragging and (input == dragInput or input.UserInputType == Enum.UserInputType.MouseMovement) then
             local delta = input.Position - dragStart
-            frame.Position = UDim2.new(
-                startPos.X.Scale, startPos.X.Offset + delta.X,
-                startPos.Y.Scale, startPos.Y.Offset + delta.Y
+            -- clamp: minimal 56px sisi window & 30px baris judul tetap
+            -- terlihat — window tidak bisa "hilang" ke luar layar (Wind-like)
+            local vp = GetViewport()
+            local size = frame.AbsoluteSize
+            local center = Vector2.new(
+                startPos.X.Scale * vp.X + startPos.X.Offset + delta.X,
+                startPos.Y.Scale * vp.Y + startPos.Y.Offset + delta.Y
             )
+            local loX = 56 - size.X * 0.5
+            local hiX = math.max(loX, vp.X - 56 + size.X * 0.5)
+            local loY = 30 - size.Y * 0.5
+            local hiY = math.max(loY, vp.Y - 30 + size.Y * 0.5)
+            center = Vector2.new(
+                math.clamp(center.X, loX, hiX),
+                math.clamp(center.Y, loY, hiY)
+            )
+            frame.Position = UDim2.new(0, center.X, 0, center.Y)
         end
     end)
     reg:Connect(UserInputService.InputEnded, function(input)
@@ -2904,7 +2940,8 @@ function WindowClass:SelectTab(tab)
 end
 
 function WindowClass:Show()
-    if self.Frame.Visible then
+    self._closing = false -- batalkan hide yang sedang berjalan
+    if self.Frame.Visible and (self.UiScale.Scale or 1) >= 0.99 then
         return
     end
     self.Frame.Visible = true
@@ -2913,23 +2950,27 @@ function WindowClass:Show()
 end
 
 function WindowClass:Hide()
-    if not self.Frame.Visible then
+    if self._closing or not self.Frame.Visible then
         return
     end
+    self._closing = true
     local tween = Tween(self.Registry, self.UiScale, TI_EXIT, { Scale = 0.7 })
-    tween.Completed:Connect(function(playback)
-        if playback == Enum.PlaybackState.Completed then
+    self.Registry:Connect(tween.Completed, function(playback)
+        if playback == Enum.PlaybackState.Completed and self._closing then
             self.Frame.Visible = false
             self.UiScale.Scale = 0.75
+            self._closing = false
         end
     end)
 end
 
 function WindowClass:Toggle()
-    if self.Frame.Visible then
-        self:Hide()
-    else
+    -- window yang sedang menutup dianggap "tersembunyi":
+    -- tap beruntun membatalkan hide & langsung memunculkan kembali
+    if self._closing or not self.Frame.Visible then
         self:Show()
+    else
+        self:Hide()
     end
 end
 

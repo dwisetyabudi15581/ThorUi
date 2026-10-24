@@ -258,8 +258,9 @@ Tab3:AddParagraph({
                 .. "3) SEARCH BAR di atas: coba ketik 'toggle' atau 'slider' — elemen terfilter real-time.\n"
                 .. "4) COLORPICKER & CONFIRM DIALOG di tab Komponen.\n"
                 .. "5) Toggle sekarang berbentuk switch ala Wind UI.\n"
-                .. "6) v2.0.1: ikon ⚡ bebas digeser, tombol + saat minimize,\n"
-                .. "   fix error SetToggleVisible & UI lama saat re-execute.",
+                .. "6) v2.1.0: FIX ikon ⚡ loncat-loncat saat digeser — drag kini\n"
+                .. "   presisi di mouse & jari; window anti hilang dari layar,\n"
+                .. "   slider & tombol lebih nyaman disentuh, tap makin responsif.",
 })
 
 Tab3:AddSection({ Name = "INFO" })
