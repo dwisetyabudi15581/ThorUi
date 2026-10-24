@@ -245,7 +245,10 @@ Tab3:AddParagraph({
                 .. "2) RESIZE dari handle sudut kanan-bawah (min 400x250).\n"
                 .. "3) Klik tab untuk ganti konten (perhatikan underline kilat).\n"
                 .. "4) PC: tekan RightControl untuk show/hide.\n"
-                .. "5) Mobile: geser tombol ⚡ melayang — snap otomatis ke tepi.",
+                .. "5) Mobile: GESER tombol ⚡ melayang ke mana saja — bebas!\n"
+                .. "   (tetap di posisi terakhir; ketuk = buka/tutup UI)\n"
+                .. "6) Minimize (tombol —) → muncul tombol + di sidebar\n"
+                .. "   untuk membesarkan window kembali.",
 })
 
 Tab3:AddParagraph({
@@ -254,7 +257,9 @@ Tab3:AddParagraph({
                 .. "2) SIDEBAR TAB ber-ikon di kiri (auto icon-only saat window sempit).\n"
                 .. "3) SEARCH BAR di atas: coba ketik 'toggle' atau 'slider' — elemen terfilter real-time.\n"
                 .. "4) COLORPICKER & CONFIRM DIALOG di tab Komponen.\n"
-                .. "5) Toggle sekarang berbentuk switch ala Wind UI.",
+                .. "5) Toggle sekarang berbentuk switch ala Wind UI.\n"
+                .. "6) v2.0.1: ikon ⚡ bebas digeser, tombol + saat minimize,\n"
+                .. "   fix error SetToggleVisible & UI lama saat re-execute.",
 })
 
 Tab3:AddSection({ Name = "INFO" })

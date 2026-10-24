@@ -21,7 +21,7 @@
 --  • Window draggable         : Mouse & Touch via UserInputService
 --  • Window resizable         : drag-handle di sudut kanan-bawah window
 --  • UISizeConstraint         : ukuran minimal (default 400 x 250)
---  • Floating toggle ⚡        : bisa digeser + snap otomatis ke tepi layar
+--  • Floating toggle ⚡        : bisa digeser BEBAS ke mana pun (di-clamp ke layar)
 --  • Keybind toggle UI        : default RightControl (bisa diganti)
 --  • Konten ScrollingFrame    : AutomaticCanvasSize (elemen tak terbatas)
 --  • 100% murni script        : Instance.new / UICorner / UIStroke — tanpa
@@ -66,7 +66,7 @@ local LocalPlayer = Players.LocalPlayer
 
 --// ─────────────────────────────── Library ──────────────────────────────────
 local ThorUi = {
-    Version = "2.0.0",
+    Version = "2.0.1",
 }
 
 --// ──────────────────────────────── Tema ────────────────────────────────────
@@ -308,6 +308,22 @@ local TOGGLE_SIZE = 48
 local function ensureGui()
     if _state.Gui and _state.Gui.Parent then
         return _state.Gui
+    end
+    -- bersihkan sisa UI ThorUi dari eksekusi sebelumnya (hindari tombol ⚡
+    -- dan window LAMA menumpuk di atas UI yang baru — penting saat re-execute)
+    local function purgeOld(container)
+        if not container then
+            return
+        end
+        for _, child in ipairs(container:GetChildren()) do
+            if child:IsA("ScreenGui") and string.sub(child.Name, 1, 7) == "ThorUi_" then
+                child:Destroy()
+            end
+        end
+    end
+    pcall(purgeOld, game:GetService("CoreGui"))
+    if LocalPlayer then
+        pcall(purgeOld, LocalPlayer:FindFirstChild("PlayerGui"))
     end
     local gui = Create("ScreenGui", {
         Name = "ThorUi_" .. tostring(math.floor(os.clock() * 1000)),
@@ -561,7 +577,7 @@ local function bindToggleKey(key)
     end)
 end
 
---// ────────────────── Tombol melayang ⚡ (drag + snap tepi) ──────────────────
+--// ────────────────── Tombol melayang ⚡ (drag bebas + ketuk) ──────────────────
 local function ensureToggleButton()
     if _state.ToggleButton and _state.ToggleButton.Parent then
         _state.ToggleButton.Visible = _state.ToggleVisible
@@ -629,7 +645,10 @@ local function ensureToggleButton()
         end)
     end
 
-    -- drag + snap + klik (responsif mouse & sentuhan)
+    -- drag BEBAS + klik (responsif mouse & sentuhan, aman multi-touch)
+    --  • geser → ikon mengikuti jari/mouse & TETAP di posisi terakhir
+    --    (tanpa snap; hanya di-clamp agar tidak keluar layar)
+    --  • ketuk (tanpa bergeser > 6px) → buka/tutup semua window
     local dragging = false
     local moved = false
     local startInput = nil
@@ -641,46 +660,57 @@ local function ensureToggleButton()
             dragging = true
             moved = false
             startInput = input
-            startPos = btn.Position
+            -- kunci posisi jadi offset murni (anchor 0,0) agar drag presisi
+            -- dan tidak terpengaruh perubahan ukuran layar (rotasi device)
+            local abs = btn.AbsolutePosition
+            btn.AnchorPoint = Vector2.new(0, 0)
+            startPos = UDim2.new(0, abs.X, 0, abs.Y)
+            btn.Position = startPos
         end
     end)
 
     reg:Connect(UserInputService.InputChanged, function(input)
-        if dragging and (input == startInput or input.UserInputType == Enum.UserInputType.MouseMovement) then
-            local delta = input.Position - startInput.Position
-            if math.abs(delta.X) > 6 or math.abs(delta.Y) > 6 then
-                moved = true
-            end
-            btn.Position = UDim2.new(
-                startPos.X.Scale, startPos.X.Offset + delta.X,
-                startPos.Y.Scale, startPos.Y.Offset + delta.Y
-            )
+        if not dragging then
+            return
         end
+        -- sentuhan: objek input sama persis; mouse: jenis MouseMovement
+        if input ~= startInput and input.UserInputType ~= Enum.UserInputType.MouseMovement then
+            return
+        end
+        local delta = input.Position - startInput.Position
+        if math.abs(delta.X) > 6 or math.abs(delta.Y) > 6 then
+            if not moved then
+                moved = true
+                -- angkat sedikit saat mulai digeser (efek "dicengkeram petir")
+                Tween(reg, scale, TI_HOVER, { Scale = 1.15 })
+            end
+        end
+        -- posisi bebas + clamp agar ikon tetap terlihat di dalam layar
+        local vp = GetViewport()
+        local nx = math.clamp(startPos.X.Offset + delta.X, 4, math.max(4, vp.X - TOGGLE_SIZE - 4))
+        local ny = math.clamp(startPos.Y.Offset + delta.Y, 4, math.max(4, vp.Y - TOGGLE_SIZE - 4))
+        btn.Position = UDim2.new(0, nx, 0, ny)
     end)
 
     reg:Connect(UserInputService.InputEnded, function(input)
-        if input.UserInputType ~= Enum.UserInputType.MouseButton1
-            and input.UserInputType ~= Enum.UserInputType.Touch then
+        if not dragging then
             return
         end
-        if not dragging then
+        -- hanya akhiri jika jari/klik yang MULAI drag ini yang berakhir
+        -- (agar multi-touch / jari kedua tidak membatalkan drag)
+        local isSameTouch = input == startInput
+        local isSameMouse = startInput ~= nil
+            and startInput.UserInputType == Enum.UserInputType.MouseButton1
+            and input.UserInputType == Enum.UserInputType.MouseButton1
+        if not (isSameTouch or isSameMouse) then
             return
         end
         dragging = false
         if moved then
-            -- snap ke tepi kiri/kanan terdekat
-            local vp = GetViewport()
-            local abs = btn.AbsolutePosition
-            local y = math.clamp(abs.Y, 8, math.max(8, vp.Y - TOGGLE_SIZE - 8))
-            local target
-            if abs.X + TOGGLE_SIZE * 0.5 < vp.X * 0.5 then
-                target = UDim2.new(0, 10 + TOGGLE_SIZE, 0, y) -- kompensasi AnchorPoint (1,0)
-            else
-                target = UDim2.new(1, -10, 0, y)
-            end
-            Tween(reg, btn, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { Position = target })
+            -- tetap di posisi terakhir dilepas (tidak di-snap ke tepi)
+            Tween(reg, scale, TI_SNAP, { Scale = 1 })
         else
-            -- dianggap klik → buka/tutup UI
+            -- dianggap ketuk → buka/tutup UI
             popScale()
             toggleWindows()
         end
@@ -688,6 +718,30 @@ local function ensureToggleButton()
 
     _state.ToggleButton = btn
     return btn
+end
+
+--// ────────────── Metode publik level-library (⚡ / keybind) ─────────────
+--  ThorUi:Toggle()             — tampilkan/sembunyikan semua window
+--  ThorUi:SetKeybind(key)      — ganti keybind toggle global (mis. Enum.KeyCode.K)
+--  ThorUi:SetToggleVisible(b)  — tampil/sembunyikan tombol ⚡ melayang
+function ThorUi:Toggle()
+    toggleWindows()
+end
+
+function ThorUi:SetKeybind(key)
+    bindToggleKey(key)
+end
+
+function ThorUi:SetToggleVisible(visible)
+    _state.ToggleVisible = visible and true or false
+    local btn = _state.ToggleButton
+    if _state.ToggleVisible and not (btn and btn.Parent) then
+        ensureToggleButton()
+        btn = _state.ToggleButton
+    end
+    if btn and btn.Parent then
+        btn.Visible = _state.ToggleVisible
+    end
 end
 
 --// ────────────── SPLASH SCREEN (gaya Wind UI, tema Thor) ───────────────────
@@ -2385,7 +2439,8 @@ function ThorUi:CreateWindow(cfg)
     local tabList = Create("ScrollingFrame", {
         Name = "TabList",
         Position = UDim2.new(0, 0, 0, 62),
-        Size = UDim2.new(1, 0, 1, -86),
+        -- ruang bawah disisakan untuk tombol expand "+" & label versi
+        Size = UDim2.new(1, 0, 1, -120),
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
         CanvasSize = UDim2.new(0, 0, 0, 0),
@@ -2567,6 +2622,48 @@ function ThorUi:CreateWindow(cfg)
         Zap(reg, closeBtn, Theme.Danger, 8)
         self:Hide()
     end)
+
+    -- ── Tombol expand "+" di sidebar (hanya tampil saat window MINIMIZED) ──
+    --  Saat collapse, panel kanan (termasuk tombol "—" di header) disembunyikan,
+    --  jadi tombol ini satu-satunya cara membesarkan window kembali.
+    local expandBtn = Create("TextButton", {
+        Name = "ExpandBtn",
+        Text = "",
+        AutoButtonColor = false,
+        AnchorPoint = Vector2.new(0.5, 1),
+        Position = UDim2.new(0.5, 0, 1, -24),
+        Size = UDim2.fromOffset(34, 34),
+        BackgroundColor3 = Theme.Card,
+        BackgroundTransparency = 0.35,
+        BorderSizePixel = 0,
+        Visible = false,
+        ZIndex = 4,
+        Parent = sidebar,
+    })
+    Corner(expandBtn, 9)
+    local expandStroke = Stroke(expandBtn, { Color = Theme.AccentGold, Thickness = 1, Transparency = 0.25 })
+    Create("TextLabel", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        Text = "+",
+        Font = Theme.FontBold,
+        TextSize = 20,
+        TextColor3 = Theme.AccentGold,
+        Parent = expandBtn,
+    })
+    reg:Connect(expandBtn.MouseEnter, function()
+        Tween(reg, expandBtn, TI_HOVER, { BackgroundTransparency = 0.1 })
+        Tween(reg, expandStroke, TI_HOVER, { Transparency = 0 })
+    end)
+    reg:Connect(expandBtn.MouseLeave, function()
+        Tween(reg, expandBtn, TI_HOVER, { BackgroundTransparency = 0.35 })
+        Tween(reg, expandStroke, TI_HOVER, { Transparency = 0.25 })
+    end)
+    reg:Connect(expandBtn.Activated, function()
+        Zap(reg, expandBtn, Theme.AccentGold, 9)
+        self:SetCollapsed(false)
+    end)
+    self.ExpandBtn = expandBtn
 
     -- garis petir di bawah header (aksen emas → cyan)
     local thunderLine = Create("Frame", {
@@ -2837,6 +2934,7 @@ function WindowClass:Toggle()
 end
 
 --  v2: collapse = window menyusut jadi sidebar saja (kanan disembunyikan).
+--  Tombol "+" di bawah sidebar muncul saat minimized untuk memperbesar kembali.
 function WindowClass:SetCollapsed(collapsed)
     if self.Collapsed == collapsed then
         return
@@ -2852,13 +2950,29 @@ function WindowClass:SetCollapsed(collapsed)
     else
         self.Right.Visible = true
         self.Grip.Visible = true
-        self.SizeConstraint.MinSize = self._minSize
+        -- kembalikan ukuran SEBELUM MinSize dipulihkan, agar frame sempit
+        -- (48-156px) tidak sempat di-clamp ke atas oleh UISizeConstraint;
+        -- clamp juga ke viewport saat ini (aman saat rotasi layar mobile)
         if self._savedAbs then
-            setSizeKeepTopLeft(self.Frame, self._savedAbs)
+            local vp = GetViewport()
+            local target = Vector2.new(
+                math.max(self._minSize.X, math.min(self._savedAbs.X, vp.X - 12)),
+                math.max(self._minSize.Y, math.min(self._savedAbs.Y, vp.Y - 12))
+            )
+            setSizeKeepTopLeft(self.Frame, target)
         end
+        self.SizeConstraint.MinSize = self._minSize
     end
     if self.CollapseLabel then
         self.CollapseLabel.Text = collapsed and "+" or "—"
+    end
+    -- tombol expand "+" di sidebar hanya tampil saat minimized;
+    -- label versi disembunyikan agar tidak bertabrakan
+    if self.ExpandBtn then
+        self.ExpandBtn.Visible = collapsed
+    end
+    if self.VersionLabel then
+        self.VersionLabel.Visible = not collapsed and not self._narrow
     end
     Zap(self.Registry, self.Header, Theme.AccentGold, 8)
 end
@@ -2873,7 +2987,17 @@ end
 
 --  Sidebar responsif: window sempit (< 520px) → icon-only (lebar 48px).
 function WindowClass:_updateResponsive()
-    local narrow = self.Frame.AbsoluteSize.X < 520
+    -- saat collapsed, ukur "lebar logis" (ukuran sebelum minimize) supaya
+    -- sidebar tidak ikut menyempit hanya karena window sedang dikecilkan;
+    -- jika AbsoluteSize belum ter-layout (0), perkirakan dari Size x viewport
+    local width = self.Frame.AbsoluteSize.X
+    if self.Collapsed and self._savedAbs then
+        width = self._savedAbs.X
+    elseif width <= 0 then
+        local vp = GetViewport()
+        width = self.Frame.Size.X.Scale * vp.X + self.Frame.Size.X.Offset
+    end
+    local narrow = width < 520
     if narrow == self._narrow then
         return
     end
@@ -2884,7 +3008,7 @@ function WindowClass:_updateResponsive()
     self.Right.Position = UDim2.new(0, w, 0, 0)
     self.Right.Size = UDim2.new(1, -w, 1, 0)
     self.LogoText.Visible = not narrow
-    self.VersionLabel.Visible = not narrow
+    self.VersionLabel.Visible = not narrow and not self.Collapsed
     for _, t in ipairs(self.Tabs) do
         t.Label.Visible = not narrow
     end

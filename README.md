@@ -1,12 +1,12 @@
 # ⚡ ThorUi v2 — Roblox UI Library bertema Dewa Petir
 
 > UI library untuk Roblox dengan tema **Thor / Dewa Petir**: gelap, snappy, dan elektrik.
-> **v2.0.0: Layout & UX terinspirasi Wind UI** — sidebar tab, search bar, splash screen, ColorPicker, Confirm dialog.
+> **v2.0.1: Layout & UX terinspirasi Wind UI** — sidebar tab, search bar, splash screen, ColorPicker, Confirm dialog.
 > Dukungan penuh **PC & Mobile** · Window *draggable* & *resizable* · **100% murni script** (tanpa Asset ID eksternal) · **Anti memory-leak**
 
 | | |
 |---|---|
-| **Versi** | 2.0.0 |
+| **Versi** | 2.0.1 |
 | **Tipe** | ModuleScript tunggal (Luau), tanpa dependensi |
 | **Platform** | PC (Mouse + Keyboard) & Mobile (Touch) |
 | **Aset** | `Instance.new` / `UICorner` / `UIStroke` / `UIGradient` saja — anti asset takedown |
@@ -24,6 +24,13 @@
 - **Confirm dialog** — modal konfirmasi overlay dengan animasi pop + fade; klik area gelap = batal.
 - **Toggle switch** — toggle didesain ulang jadi switch ala Wind UI: track memanjang + knob bulat meluncur dengan easing Back.
 
+### Perbaikan di v2.0.1
+
+- **Ikon ⚡ bebas digeser** — drag ke mana pun, ikon **tetap di posisi terakhir** (tanpa snap ke tepi; hanya di-clamp agar tidak keluar layar). Ketuk = buka/tutup UI.
+- **Fix minimize terkunci** — saat window di-minimize (tombol `—`), kini muncul tombol **`+` di bawah sidebar** untuk membesarkan kembali ke ukuran semula (ukuran & posisi tersimpan aman, tahan rotasi layar).
+- **Fix error `SetToggleVisible`** — metode `ThorUi:SetToggleVisible()` / `SetKeybind()` / `Toggle()` yang hilang saat port v2 kini tersedia kembali.
+- **Anti UI menumpuk saat re-execute** — ScreenGui ThorUi lama otomatis dibersihkan saat library dimuat ulang, jadi tombol ⚡ & window tidak dobel.
+
 ### Fitur inti
 
 - **Tema Lightning & Thunder** — dasar *Midnight Blue* pekat dengan aksen *Electric Blue* (cyan neon) dan *Lightning Gold*, plus glow sederhana lewat `UIGradient` + layer transparan + stroke neon.
@@ -31,7 +38,7 @@
 - **Window draggable** — dari baris logo sidebar atau header kanan, dengan **mouse maupun sentuhan** via `UserInputService`.
 - **Window resizable** — drag-handle di **sudut kanan bawah** window, dilengkapi `UISizeConstraint` (default minimal `400 × 250`) + auto-clamp untuk layar kecil.
 - **Responsif otomatis** — ukuran window default menyesuaikan viewport; sidebar auto icon-only saat sempit.
-- **Floating toggle ⚡** — tombol petir melayang yang bisa digeser ke mana pun dan **snap otomatis ke tepi layar** (perfect untuk Mobile).
+- **Floating toggle ⚡** — tombol petir melayang yang bisa **digeser bebas ke mana pun** dan tetap di posisi terakhir (di-clamp agar tidak keluar layar; perfect untuk Mobile).
 - **Keybind toggle UI** — default `RightControl`, bisa diganti kapan saja.
 - **Konten tak terbatas** — tiap tab pakai `ScrollingFrame` + `AutomaticCanvasSize`.
 - **11 komponen siap pakai** — Button, Toggle, Slider, Dropdown (single & multi-select), TextInput, Keybind, ColorPicker, Section, Label, Paragraph, dan Notify.
@@ -143,7 +150,7 @@ Contoh implementasi **lengkap** (semua komponen) tersedia di [`Example.lua`](Exa
 | `Window:CreateTab({ Name, Icon })` | Membuat tab baru. `Icon` opsional (emoji/teks, mis. `"⚡"`). |
 | `Window:Show()` / `Window:Hide()` | Tampilkan / sembunyikan window (dengan animasi pop). |
 | `Window:Toggle()` | Buka/tutup window. |
-| `Window:SetCollapsed(bool)` | Lipat window jadi title bar saja (`true`) atau kembalikan (`false`). |
+| `Window:SetCollapsed(bool)` | Minimize window jadi sidebar saja (`true`) atau kembalikan ke ukuran semula (`false`). Saat minimized, tombol `+` muncul di bawah sidebar untuk expand. |
 | `Window:SetKeybind(key)` | Alias `ThorUi:SetKeybind()`. |
 | `Window:Destroy()` | Hancurkan window ini + bersihkan seluruh memory-nya. |
 
@@ -242,7 +249,7 @@ Elemen statis untuk menyusun halaman: judul seksi bergaris, label teks, dan para
 |---|---|---|
 | Drag window | Sentuh & geser title bar | Klik & tarik title bar |
 | Resize window | Sentuh & geser handle sudut kanan-bawah | Klik & tarik handle |
-| Toggle UI | Ketuk tombol ⚡ melayang (bisa digeser, snap ke tepi) | `RightControl` |
+| Toggle UI | Ketuk tombol ⚡ melayang (bisa digeser bebas) | `RightControl` |
 | Semua tombol | `Activated` event — bekerja untuk tap maupun klik | sama |
 | Ukuran window | Default `0.92 × 0.62` skala layar, auto-clamp | Default `580 × 420` px |
 
