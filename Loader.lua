@@ -274,7 +274,11 @@ Tab3:AddParagraph({
                 .. "   tinggi teks kini diukur sinkron (GetTextSize) lalu dipasang\n"
                 .. "   eksplisit: keterangan, Label, Paragraph, isi notifikasi,\n"
                 .. "   dan pesan Confirm SELALU utuh terbaca + auto re-ukur saat\n"
-                .. "   window di-resize / layar dirotasi.",
+                .. "   window di-resize / layar dirotasi.\n"
+                .. "9) v2.1.3: FIX error fatal \"'Value' is not a valid member of\n"
+                .. "   UDim\" (v2.1.2) yang menggagalkan pembuatan elemen ber-\n"
+                .. "   Description di semua perangkat — pengukur tinggi teks kini\n"
+                .. "   memakai .Offset yang benar; elemen dibuat normal kembali.",
 })
 
 Tab3:AddSection({ Name = "INFO" })

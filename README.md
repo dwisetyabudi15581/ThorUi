@@ -1,12 +1,12 @@
 # ⚡ ThorUi v2 — Roblox UI Library bertema Dewa Petir
 
 > UI library untuk Roblox dengan tema **Thor / Dewa Petir**: gelap, snappy, dan elektrik.
-> **v2.1.2: FIX teks keterangan/paragraf yang ketimpa elemen di bawahnya (di sebagian perangkat) + Description ala Wind UI di semua elemen** — sidebar tab, search bar, splash screen, ColorPicker, Confirm dialog.
+> **v2.1.3: FIX error fatal "'Value' is not a valid member of UDim" (v2.1.2) yang menggagalkan pembuatan elemen ber-Description + teks keterangan/paragraf tidak lagi ketimpa elemen di bawahnya + Description ala Wind UI di semua elemen** — sidebar tab, search bar, splash screen, ColorPicker, Confirm dialog.
 > Dukungan penuh **PC & Mobile** · Window *draggable* & *resizable* · **100% murni script** (tanpa Asset ID eksternal) · **Anti memory-leak**
 
 | | |
 |---|---|
-| **Versi** | 2.1.2 |
+| **Versi** | 2.1.3 |
 | **Tipe** | ModuleScript tunggal (Luau), tanpa dependensi |
 | **Platform** | PC (Mouse + Keyboard) & Mobile (Touch) |
 | **Aset** | `Instance.new` / `UICorner` / `UIStroke` / `UIGradient` saja — anti asset takedown |
@@ -51,6 +51,11 @@
 - **FIX ColorPicker slider hue via sentuhan** — dulu slider hue hanya bisa digeser mouse; kini jari juga bisa (filter gesture source-lock).
 - **Gesture source-lock menyeluruh** — drag window, resize, slider, dan ikon ⚡ mengunci sumber input saat gesture dimulai: di perangkat *hybrid* (PC layar sentuh / tablet + mouse) posisi mouse yang menetap tidak lagi bikin UI meloncat; jari kedua tidak mengganggu drag yang sedang berjalan.
 - **Sentuhan mobile makin nyaman** — nilai slider tidak terpotong (`TextTruncate`), baris opsi dropdown 24→28px, kartu Confirm dialog auto-fit di layar sempit.
+
+### Perbaikan di v2.1.3 (hotfix error fatal — dari laporan log console)
+
+- **FIX error `"'Value' is not a valid member of UDim"`** — helper pengukur tinggi teks yang baru di v2.1.2 (`fitTextHeight`) mengakses `.Value` pada `UIPadding.PaddingLeft/PaddingRight` — padahal member itu **tidak ada** (bertipe `UDim` yang hanya punya `.Scale` & `.Offset`). Akibatnya setiap elemen yang punya `Description` **gagal dibuat** dengan error di `AddToggle`/`AddSlider`/dll. (stack: `fitTextHeight → fit → autofitText → attachDescription → AddToggle`) dan script pemanggilnya ikut mati; notifikasi error juga terus muncul saat resize/ubah teks. Kini memakai `.Offset` yang benar — **semua elemen dibuat normal dan pengukuran anti-ketimpa v2.1.2 berjalan sebagaimana mestinya**.
+- **Dampak perbaikan** — sekaligus memulihkan seluruh manfaat v2.1.2: keterangan semua elemen, Label, Paragraph, isi notifikasi, dan pesan Confirm terukur tingginya secara sinkron (`GetTextSize`) sehingga SELALU utuh terbaca, plus auto re-ukur saat teks berubah / window di-resize / layar dirotasi.
 
 ### Perbaikan di v2.1.2 (fix teks ketimpa — dari laporan screenshot)
 

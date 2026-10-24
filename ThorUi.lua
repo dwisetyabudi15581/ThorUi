@@ -1,8 +1,8 @@
 --════════════════════════════════════════════════════════════════════════════
---  ⚡  ThorUi v2.1.2 — Roblox UI Library bertema Dewa Petir (Thor / Petir)
+--  ⚡  ThorUi v2.1.3 — Roblox UI Library bertema Dewa Petir (Thor / Petir)
 --      Layout & UX terinspirasi Wind UI · tema tetap 100% Thor ⚡
 --  ──────────────────────────────────────────────────────────────────────────
---  Versi     : 2.1.2 (ModuleScript tunggal, tanpa dependensi eksternal)
+--  Versi     : 2.1.3 (ModuleScript tunggal, tanpa dependensi eksternal)
 --  Platform  : PC & Mobile — draggable, resizable, cross-platform
 --
 --  BARU DI v2.0.0 (gaya Wind UI)
@@ -49,6 +49,17 @@
 --                         input MENIMPA separuh bawah teks keterangan
 --  • Re-ukur otomatis    : tinggi teks dihitung ulang saat teks berubah /
 --                         window di-resize / layar dirotasi — selalu pas
+--
+--  FIX DI v2.1.3 (dari log error user: "'Value' is not a valid member of UDim")
+--  • FIX crash fatal     : helper pengukur v2.1.2 mengakses .Value pada
+--                         UDim (member itu TIDAK ADA — UDim hanya punya
+--                         .Scale & .Offset) → error di fitTextHeight yang
+--                         MENGGAGALKAN pembuatan elemen ber-Description
+--                         (stack: AddToggle → attachDescription →
+--                         autoFitText → fit → fitTextHeight) di SEMUA
+--                         perangkat. Kini memakai .Offset yang benar —
+--                         elemen dibuat normal & pengukuran anti-ketimpa
+--                         v2.1.2 berjalan sebagaimana mestinya.
 --
 --  FITUR LANJUTAN
 --  • Tema Lightning & Thunder : Midnight Blue + Electric Blue / Lightning Gold
@@ -106,7 +117,7 @@ local LocalPlayer = Players.LocalPlayer
 
 --// ─────────────────────────────── Library ──────────────────────────────────
 local ThorUi = {
-    Version = "2.1.2",
+    Version = "2.1.3",
 }
 
 --// ──────────────────────────────── Tema ────────────────────────────────────
@@ -333,7 +344,7 @@ local function fitTextHeight(label, minH)
     local pad = 0
     for _, ch in ipairs(parent:GetChildren()) do
         if ch:IsA("UIPadding") then
-            pad = ch.PaddingLeft.Value + ch.PaddingRight.Value
+            pad = ch.PaddingLeft.Offset + ch.PaddingRight.Offset
             break
         end
     end
