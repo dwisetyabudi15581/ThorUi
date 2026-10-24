@@ -1,0 +1,101 @@
+--════════════════════════════════════════════════════════════════════════════
+--  ⚡ ThorUi — Example.lua (LocalScript)
+--  Tempel file ini sebagai LocalScript di StarterPlayer > StarterPlayerScripts,
+--  pastikan ModuleScript "ThorUi" sudah ada di ReplicatedStorage.
+--════════════════════════════════════════════════════════════════════════════
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+local ThorUi = require(ReplicatedStorage:WaitForChild("ThorUi"))
+
+-- (Opsional) kustomisasi tema SEBELUM membuat window:
+-- ThorUi.Theme.Accent     = Color3.fromRGB(170, 90, 255)
+-- ThorUi.Theme.AccentGold = Color3.fromRGB(255, 200, 60)
+
+local Window = ThorUi:CreateWindow({
+	Title = "ThorUi ⚡",
+	Size = UDim2.new(0, 580, 0, 420),  -- kosongkan agar otomatis responsif mobile
+	MinSize = Vector2.new(400, 250),   -- batas minimal saat resize
+	Keybind = Enum.KeyCode.RightControl, -- toggle buka/tutup UI (PC)
+	-- ShowToggle = false,               -- sembunyikan tombol ⚡ melayang
+})
+
+local Tab = Window:CreateTab({ Name = "Main", Icon = "⚡" })
+local Tab2 = Window:CreateTab({ Name = "Info", Icon = "🌩" })
+
+Tab:AddSection({ Name = "MENU UTAMA" })
+
+Tab:AddButton({
+	Name = "Kirim Petir!",
+	Callback = function()
+		ThorUi:Notify({
+			Title = "⚡ Petir Menyambar",
+			Content = "BOOM! Petir berhasil dikirim ke target.",
+			Duration = 3,
+		})
+	end,
+})
+
+local godMode = Tab:AddToggle({
+	Name = "God Mode",
+	Default = false,
+	Callback = function(value)
+		print("God Mode:", value)
+	end,
+})
+
+Tab:AddSlider({
+	Name = "WalkSpeed",
+	Min = 16, Max = 200, Default = 16,
+	Increment = 1, Suffix = " spd",
+	Callback = function(value)
+		local char = Players.LocalPlayer.Character
+		local hum = char and char:FindFirstChildOfClass("Humanoid")
+		if hum then
+			hum.WalkSpeed = value
+		end
+	end,
+})
+
+Tab:AddDropdown({
+	Name = "Senjata",
+	Values = { "Mjolnir", "Stormbreaker", "Gungnir" },
+	Default = "Mjolnir",
+	-- Multi = true,  -- aktifkan untuk multi-select
+	Callback = function(value)
+		print("Senjata:", value)
+	end,
+})
+
+Tab:AddTextInput({
+	Name = "Nama Target",
+	Placeholder = "Ketik nama pemain...",
+	Callback = function(text, enterPressed)
+		print("Input:", text, "| Enter:", enterPressed)
+	end,
+})
+
+Tab:AddKeybind({
+	Name = "Skill Petir",
+	Default = Enum.KeyCode.R,
+	Callback = function(bind)
+		print("Skill dipanggil dengan:", bind.Name)
+	end,
+})
+
+Tab2:AddParagraph({
+	Title = "Tentang ThorUi",
+	Text = "UI library bertema Dewa Petir: gelap, snappy, dan responsif. "
+		.. "Drag window dari title bar, resize dari sudut kanan bawah, "
+		.. "dan geser tombol ⚡ melayang ke mana pun (snap otomatis ke tepi).",
+})
+
+ThorUi:Notify({ Title = "⚡ Petir Menyambar", Content = "Script berhasil dimuat!", Duration = 3 })
+
+-- Kontrol programatik:
+-- godMode:Set(true)         -> set nilai + panggil callback
+-- godMode:Set(true, false)  -> set nilai TANPA callback
+-- godMode:Get()             -> ambil nilai
+-- Window:Toggle() / Window:Destroy()
+-- ThorUi:Destroy()          -> hancurkan seluruh UI + bersihkan memory
