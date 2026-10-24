@@ -1,11 +1,12 @@
-# ⚡ ThorUi — Roblox UI Library bertema Dewa Petir
+# ⚡ ThorUi v2 — Roblox UI Library bertema Dewa Petir
 
 > UI library untuk Roblox dengan tema **Thor / Dewa Petir**: gelap, snappy, dan elektrik.
+> **v2.0.0: Layout & UX terinspirasi Wind UI** — sidebar tab, search bar, splash screen, ColorPicker, Confirm dialog.
 > Dukungan penuh **PC & Mobile** · Window *draggable* & *resizable* · **100% murni script** (tanpa Asset ID eksternal) · **Anti memory-leak**
 
 | | |
 |---|---|
-| **Versi** | 1.0.0 |
+| **Versi** | 2.0.0 |
 | **Tipe** | ModuleScript tunggal (Luau), tanpa dependensi |
 | **Platform** | PC (Mouse + Keyboard) & Mobile (Touch) |
 | **Aset** | `Instance.new` / `UICorner` / `UIStroke` / `UIGradient` saja — anti asset takedown |
@@ -14,15 +15,26 @@
 
 ## 🌩️ Fitur Unggulan
 
+### Baru di v2.0.0 (terinspirasi Wind UI)
+
+- **Splash screen** — layar pembuka dengan logo ⚡ memantul, progress bar petir, dan status menggemas ("Memanggil petir...", "Menempa Mjolnir..."). Muncul otomatis sekali per sesi, bisa dimatikan dengan `Splash = false`.
+- **Sidebar tab vertikal** — tab ber-ikon di sisi kiri ala Wind UI, dengan indikator petir yang "menyambar" saat tab aktif. Saat window sempit (< 520px), sidebar otomatis menyusut jadi icon-only.
+- **Search bar** — kotak pencarian di header yang memfilter elemen tab aktif secara real-time. Ketik "toggle" → hanya elemen bernama toggle yang tampil.
+- **ColorPicker** — picker warna lengkap: kotak Saturasi-Value + slider Hue pelangi + tampilan HEX/RGB, semuanya digambar murni dengan `UIGradient` (tanpa aset gambar).
+- **Confirm dialog** — modal konfirmasi overlay dengan animasi pop + fade; klik area gelap = batal.
+- **Toggle switch** — toggle didesain ulang jadi switch ala Wind UI: track memanjang + knob bulat meluncur dengan easing Back.
+
+### Fitur inti
+
 - **Tema Lightning & Thunder** — dasar *Midnight Blue* pekat dengan aksen *Electric Blue* (cyan neon) dan *Lightning Gold*, plus glow sederhana lewat `UIGradient` + layer transparan + stroke neon.
 - **Animasi snappy ala kilat** — semua hover, klik, ganti tab, dan show/hide memakai `TweenService` dengan easing cepat (`Quad`, `Quart`, `Back`) supaya terasa responsif.
-- **Window draggable** — title bar bisa ditarik dengan **mouse maupun sentuhan** via `UserInputService`.
+- **Window draggable** — dari baris logo sidebar atau header kanan, dengan **mouse maupun sentuhan** via `UserInputService`.
 - **Window resizable** — drag-handle di **sudut kanan bawah** window, dilengkapi `UISizeConstraint` (default minimal `400 × 250`) + auto-clamp untuk layar kecil.
-- **Responsif otomatis** — ukuran window default menyesuaikan viewport; jika layar lebih kecil dari batas minimal, ukuran di-clamp otomatis.
+- **Responsif otomatis** — ukuran window default menyesuaikan viewport; sidebar auto icon-only saat sempit.
 - **Floating toggle ⚡** — tombol petir melayang yang bisa digeser ke mana pun dan **snap otomatis ke tepi layar** (perfect untuk Mobile).
 - **Keybind toggle UI** — default `RightControl`, bisa diganti kapan saja.
-- **Tab system** — konten tiap tab pakai `ScrollingFrame` + `AutomaticCanvasSize`, jadi panjang konten bebas tanpa scroll manual.
-- **10 komponen siap pakai** — Button, Toggle, Slider, Dropdown (single & multi-select), TextInput, Keybind, Section, Label, Paragraph, dan Notify.
+- **Konten tak terbatas** — tiap tab pakai `ScrollingFrame` + `AutomaticCanvasSize`.
+- **11 komponen siap pakai** — Button, Toggle, Slider, Dropdown (single & multi-select), TextInput, Keybind, ColorPicker, Section, Label, Paragraph, dan Notify.
 - **Notify system** — muncul dengan slide + fade dari kanan atas, bisa dituk untuk menutup cepat, maksimal 5 notifikasi bertumpuk.
 - **Anti memory-leak** — *semua* koneksi event & tween disimpan ke *garbage table* (`Registry`) dan otomatis di-`:Disconnect()` / `:Cancel()` saat UI dihancurkan.
 
@@ -62,7 +74,7 @@ local ThorUi = require(ReplicatedStorage:WaitForChild("ThorUi"))
 
 local Window = ThorUi:CreateWindow({
     Title   = "ThorUi ⚡",
-    Size    = UDim2.new(0, 580, 0, 420),   -- kosongkan agar otomatis responsif
+    Size    = UDim2.new(0, 620, 0, 430),   -- kosongkan agar otomatis responsif
     MinSize = Vector2.new(400, 250),       -- batas minimal saat resize
     Keybind = Enum.KeyCode.RightControl,   -- toggle buka/tutup UI (PC)
 })

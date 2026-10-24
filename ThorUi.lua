@@ -1,10 +1,20 @@
 --════════════════════════════════════════════════════════════════════════════
---  ⚡  ThorUi — Roblox UI Library bertema Dewa Petir (Thor / Petir)
+--  ⚡  ThorUi v2.0.0 — Roblox UI Library bertema Dewa Petir (Thor / Petir)
+--      Layout & UX terinspirasi Wind UI · tema tetap 100% Thor ⚡
 --  ──────────────────────────────────────────────────────────────────────────
---  Versi     : 1.0.0   (ModuleScript tunggal, tanpa dependensi eksternal)
+--  Versi     : 2.0.0 (ModuleScript tunggal, tanpa dependensi eksternal)
 --  Platform  : PC & Mobile — draggable, resizable, cross-platform
 --
---  FITUR
+--  BARU DI v2.0.0 (gaya Wind UI)
+--  • Splash screen      : logo ⚡ + progress bar + status "memanggil petir"
+--  • Sidebar tab        : tab vertikal ber-ikon di sisi kiri (auto icon-only
+--                         saat window sempit / mobile)
+--  • Search bar         : cari & filter elemen di tab aktif secara real-time
+--  • ColorPicker        : kotak SV + slider hue + tampilan HEX/RGB
+--  • Confirm dialog     : modal konfirmasi bergaya Wind (overlay + pop)
+--  • Toggle switch      : pill + knob meluncur ala kilat
+--
+--  FITUR LANJUTAN
 --  • Tema Lightning & Thunder : Midnight Blue + Electric Blue / Lightning Gold
 --  • Animasi snappy ala kilat : TweenService (Back / Quart / Quad, cepat)
 --  • Glow sederhana           : UIGradient + layer transparan + stroke neon
@@ -13,9 +23,7 @@
 --  • UISizeConstraint         : ukuran minimal (default 400 x 250)
 --  • Floating toggle ⚡        : bisa digeser + snap otomatis ke tepi layar
 --  • Keybind toggle UI        : default RightControl (bisa diganti)
---  • Tab system               : ScrollingFrame + AutomaticCanvasSize
---  • Komponen                 : Button, Toggle, Slider, Dropdown, TextInput,
---                               Keybind, Section, Label, Paragraph, Notify
+--  • Konten ScrollingFrame    : AutomaticCanvasSize (elemen tak terbatas)
 --  • 100% murni script        : Instance.new / UICorner / UIStroke — tanpa
 --                               Asset ID gambar sama sekali (anti banned asset)
 --  • Anti memory-leak         : semua connection & tween masuk garbage table
@@ -23,14 +31,16 @@
 --
 --  RINGKASAN API
 --  ──────────────────────────────────────────────────────────────────────────
---  ThorUi:CreateWindow({Title, Size, MinSize, Position, Keybind, ShowToggle})
+--  ThorUi:CreateWindow({Title, Size, MinSize, Position, Keybind, ShowToggle,
+--                       Splash})
 --  ThorUi:Notify({Title, Content, Duration, Icon})
 --  ThorUi:SetKeybind(Enum.KeyCode.X)    ThorUi:Toggle()    ThorUi:Destroy()
 --  ThorUi:SetToggleVisible(bool)
 --
 --  Window:CreateTab({Name, Icon})        Window:Show()/Hide()/Toggle()
 --  Window:SetCollapsed(bool)             Window:Destroy()
---  Window:SetKeybind(Enum.KeyCode.X)
+--  Window:SetKeybind(Enum.KeyCode.X)     Window:SetTitle(text)
+--  Window:Confirm({Title, Content, ConfirmText, CancelText, OnConfirm, OnCancel})
 --
 --  Tab:AddButton({Name, Callback})
 --  Tab:AddToggle({Name, Default, Callback})              :Set(bool) / :Get()
@@ -38,6 +48,7 @@
 --  Tab:AddDropdown({Name, Values, Default, Multi, Callback})
 --  Tab:AddTextInput({Name, Text, Placeholder, ClearOnFocus, Callback(text, enter)})
 --  Tab:AddKeybind({Name, Default, Callback})             :SetKey(enum) / :Get()
+--  Tab:AddColorPicker({Name, Default, Callback})          :Set(Color3) / :Get()
 --  Tab:AddSection({Name})   Tab:AddLabel({Text})   Tab:AddParagraph({Title, Text})
 --  Element:Set(...)         Element:Get()          Element:Remove()
 --
@@ -55,7 +66,7 @@ local LocalPlayer = Players.LocalPlayer
 
 --// ─────────────────────────────── Library ──────────────────────────────────
 local ThorUi = {
-    Version = "1.0.0",
+    Version = "2.0.0",
 }
 
 --// ──────────────────────────────── Tema ────────────────────────────────────
@@ -83,9 +94,9 @@ ThorUi.Theme = Theme
 
 --// ─────────────────────── Easing "kilat petir" (snappy) ────────────────────
 local TI_HOVER  = TweenInfo.new(0.12, Enum.EasingStyle.Quad,  Enum.EasingDirection.Out)
-local TI_SNAP   = TweenInfo.new(0.18, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
-local TI_STRIKE = TweenInfo.new(0.28, Enum.EasingStyle.Back,  Enum.EasingDirection.Out)
-local TI_EXIT   = TweenInfo.new(0.16, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+local TI_SNAP   = TweenInfo.new(0.18, Enum.EasingStyle.Quart,  Enum.EasingDirection.Out)
+local TI_STRIKE = TweenInfo.new(0.28, Enum.EasingStyle.Back,   Enum.EasingDirection.Out)
+local TI_EXIT   = TweenInfo.new(0.16, Enum.EasingStyle.Quart,  Enum.EasingDirection.In)
 
 --// ──────────────── Registry: garbage table anti memory-leak ────────────────
 --  Semua RBXScriptConnection & Tween disimpan ke dalam satu table sampah,
@@ -266,6 +277,15 @@ local function removeFrom(list, value)
     return false
 end
 
+local function hexFromColor3(c)
+    return string.format(
+        "#%02X%02X%02X",
+        math.floor(c.R * 255 + 0.5),
+        math.floor(c.G * 255 + 0.5),
+        math.floor(c.B * 255 + 0.5)
+    )
+end
+
 --// ────────────────────────── State library-level ───────────────────────────
 local _state = {
     Gui           = nil,  -- ScreenGui utama (CoreGui → PlayerGui fallback)
@@ -278,6 +298,8 @@ local _state = {
     Windows       = {},
     Notifs        = {},
     Registry      = Registry.new(), -- garbage table level library
+    SplashDone    = false, -- splash hanya sekali per sesi (window pertama)
+    SplashActive  = false,
 }
 
 local TOGGLE_SIZE = 48
@@ -388,7 +410,7 @@ function ThorUi:Notify(cfg)
         BorderSizePixel = 0,
         Parent = container,
     })
-    Corner(notif, 8)
+    Corner(notif, 10)
     Stroke(notif, { Color = Theme.Stroke, Transparency = 0.3 })
 
     -- bar petir di sisi kiri
@@ -668,69 +690,158 @@ local function ensureToggleButton()
     return btn
 end
 
---// ───────────────────────────── API publik kecil ───────────────────────────
-function ThorUi:SetKeybind(key)
-    if typeof(key) == "EnumItem" and key.EnumType == Enum.KeyCode then
-        bindToggleKey(key)
-    else
-        warn("[ThorUi] SetKeybind: gunakan Enum.KeyCode (contoh: Enum.KeyCode.RightControl)")
-    end
-end
+--// ────────────── SPLASH SCREEN (gaya Wind UI, tema Thor) ───────────────────
+--  Layar pembuka: logo ⚡ memantul + progress bar petir + status menggemas.
+--  playSplash(onDone) tidak memblokir; onDone dipanggil setelah fade-out.
+local function playSplash(onDone)
+    local gui = ensureGui()
+    local reg = Registry.new()
+    _state.SplashActive = true
 
-function ThorUi:Toggle()
-    toggleWindows()
-end
+    local overlay = Create("Frame", {
+        Name = "ThorUi_Splash",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = Theme.Background,
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ZIndex = 100,
+        Parent = gui,
+    })
 
-function ThorUi:SetToggleVisible(visible)
-    _state.ToggleVisible = visible == true
-    local btn = _state.ToggleButton
-    if btn then
-        btn.Visible = _state.ToggleVisible
-    end
-    local pulse = _state.TogglePulse
-    if pulse then
-        if _state.ToggleVisible then
-            pcall(function() pulse:Play() end)
-        else
-            pcall(function() pulse:Pause() end)
+    -- konten tengah (diatur UIListLayout, center)
+    local holder = Create("Frame", {
+        BackgroundTransparency = 1,
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.new(0.5, 0, 0.44, 0),
+        Size = UDim2.new(0, 260, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        Parent = overlay,
+    })
+    Create("UIListLayout", {
+        Padding = UDim.new(0, 8),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        HorizontalAlignment = Enum.HorizontalAlignment.Center,
+        Parent = holder,
+    })
+
+    -- lingkaran logo ⚡ (pop memantul saat muncul)
+    local circle = Create("Frame", {
+        Size = UDim2.fromOffset(88, 88),
+        BackgroundColor3 = Theme.BackgroundAlt,
+        BorderSizePixel = 0,
+        LayoutOrder = 1,
+        Parent = holder,
+    })
+    Corner(circle, UDim.new(1, 0))
+    Gradient(circle, Theme.Card, Theme.BackgroundAlt, 45)
+    Stroke(circle, { Color = Theme.Accent, Thickness = 1.5, Transparency = 0.05 })
+    local circleScale = Create("UIScale", { Scale = 0.3, Parent = circle })
+    Create("TextLabel", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        Text = "⚡",
+        Font = Theme.FontBold,
+        TextSize = 46,
+        TextColor3 = Theme.AccentGold,
+        Parent = circle,
+    })
+
+    -- judul dengan teks gradien emas → cyan
+    local title = Create("TextLabel", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 24),
+        Text = "ThorUi",
+        Font = Theme.FontBold,
+        TextSize = 22,
+        TextColor3 = Theme.White,
+        LayoutOrder = 2,
+        Parent = holder,
+    })
+    Gradient(title, Theme.AccentGold, Theme.Accent, 25)
+
+    Create("TextLabel", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 14),
+        Text = "v" .. ThorUi.Version .. " — Dewa Petir",
+        Font = Theme.FontMain,
+        TextSize = 12,
+        TextColor3 = Theme.TextDim,
+        LayoutOrder = 3,
+        Parent = holder,
+    })
+
+    -- progress bar petir
+    local barTrack = Create("Frame", {
+        Size = UDim2.new(0, 220, 0, 4),
+        BackgroundColor3 = Theme.Track,
+        BorderSizePixel = 0,
+        LayoutOrder = 4,
+        Parent = holder,
+    })
+    Corner(barTrack, UDim.new(1, 0))
+    local barFill = Create("Frame", {
+        Size = UDim2.new(0, 0, 1, 0),
+        BackgroundColor3 = Theme.Accent,
+        BorderSizePixel = 0,
+        Parent = barTrack,
+    })
+    Corner(barFill, UDim.new(1, 0))
+    Gradient(barFill, Theme.Accent, Theme.AccentGold, 0)
+
+    local status = Create("TextLabel", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 14),
+        Text = "...",
+        Font = Theme.FontMain,
+        TextSize = 11,
+        TextColor3 = Theme.TextDim,
+        LayoutOrder = 5,
+        Parent = holder,
+    })
+
+    -- fade-in cepat lalu logo memantul
+    Tween(reg, overlay, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundTransparency = 0 })
+    Tween(reg, circleScale, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
+
+    -- urutan animasi (async, tidak memblokir caller)
+    task.spawn(function()
+        local statuses = { "Menghubungkan ke Valhalla...", "Memanggil petir...", "Menempa Mjolnir..." }
+        for _, s in ipairs(statuses) do
+            if not overlay.Parent or not _state.SplashActive then
+                return
+            end
+            status.Text = s
+            task.wait(0.33)
         end
-    end
-end
 
---// ──────────────────────── Hancurkan SELURUH UI ────────────────────────────
-function ThorUi:Destroy()
-    -- 1) hancurkan semua window (memicu Clean semua registry window/tab/elemen)
-    local windows = {}
-    for _, w in ipairs(_state.Windows) do
-        table.insert(windows, w)
-    end
-    for _, w in ipairs(windows) do
-        w:Destroy()
-    end
-    -- 2) tutup semua notifikasi (cancel task.delay yang masih berjalan)
-    local notifs = {}
-    for _, n in ipairs(_state.Notifs) do
-        table.insert(notifs, n)
-    end
-    for _, n in ipairs(notifs) do
-        despawnNotification(n, true)
-    end
-    -- 3) bersihkan garbage table level library (semua connection & tween)
-    _state.Registry:Clean()
-    _state.KeyConn = nil
-    _state.TogglePulse = nil
-    -- 4) hancurkan ScreenGui
-    if _state.Gui then
-        _state.Gui:Destroy()
-    end
-    _state.Gui = nil
-    _state.NotifyHolder = nil
-    _state.ToggleButton = nil
-    _state.Windows = {}
-    _state.Notifs = {}
+        local fill = Tween(reg, barFill, TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+            Size = UDim2.new(1, 0, 1, 0),
+        })
+        fill.Completed:Wait()
+        if not overlay.Parent or not _state.SplashActive then
+            return
+        end
+
+        status.Text = "⚡ Siap!"
+        task.wait(0.18)
+
+        local fade = Tween(reg, overlay, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
+            BackgroundTransparency = 1,
+        })
+        fade.Completed:Wait()
+        reg:Clean()
+        if overlay.Parent then
+            overlay:Destroy()
+        end
+        _state.SplashActive = false
+        if onDone then
+            onDone()
+        end
+    end)
 end
 
 --// ──────────────────────────────── Tab ─────────────────────────────────────
+--  v2: tombol tab vertikal di SIDEBAR (ikon + nama), bukan lagi tab horizontal.
 local TabClass = {}
 TabClass.__index = TabClass
 
@@ -738,42 +849,54 @@ function TabClass.new(window, cfg)
     cfg = cfg or {}
     local reg = Registry.new()
 
+    -- tombol tab di sidebar (vertikal, ber-ikon)
     local btn = Create("TextButton", {
         Name = "Tab_" .. tostring(cfg.Name or "Tab"),
         Text = "",
         AutoButtonColor = false,
-        BackgroundTransparency = 1,
         BackgroundColor3 = Theme.Card,
-        Size = UDim2.new(0, 0, 1, -8),
-        AutomaticSize = Enum.AutomaticSize.X,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 34),
         BorderSizePixel = 0,
-        Parent = window.TabBar,
+        LayoutOrder = #window.Tabs + 1,
+        Parent = window.TabList,
     })
-    Corner(btn, 6)
-    Create("UIPadding", {
-        PaddingLeft = UDim.new(0, 10),
-        PaddingRight = UDim.new(0, 10),
+    Corner(btn, 8)
+
+    -- indikator petir di sisi kiri (menyambar saat tab aktif)
+    local indicator = Create("Frame", {
+        AnchorPoint = Vector2.new(0, 0.5),
+        Position = UDim2.new(0, 0, 0.5, 0),
+        Size = UDim2.new(0, 3, 0, 0),
+        BackgroundColor3 = Theme.Accent,
+        BorderSizePixel = 0,
+        Parent = btn,
+    })
+    Corner(indicator, UDim.new(1, 0))
+    Gradient(indicator, Theme.AccentGold, Theme.Accent, 90)
+
+    local icon = Create("TextLabel", {
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 10, 0, 0),
+        Size = UDim2.new(0, 18, 1, 0),
+        Text = tostring(cfg.Icon or "⚡"),
+        Font = Theme.FontBold,
+        TextSize = 13,
+        TextColor3 = Theme.TextDim,
         Parent = btn,
     })
     local label = Create("TextLabel", {
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 1, 0),
-        Text = (cfg.Icon and (tostring(cfg.Icon) .. " ") or "") .. tostring(cfg.Name or "Tab"),
+        Position = UDim2.new(0, 32, 0, 0),
+        Size = UDim2.new(1, -36, 1, 0),
+        Text = tostring(cfg.Name or "Tab"),
         Font = Theme.FontMedium,
         TextSize = 12,
         TextColor3 = Theme.TextDim,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextTruncate = Enum.TextTruncate.AtEnd,
         Parent = btn,
     })
-    local underline = Create("Frame", {
-        AnchorPoint = Vector2.new(0, 1),
-        Position = UDim2.new(0, 10, 1, -2),
-        Size = UDim2.new(1, -20, 0, 2),
-        BackgroundColor3 = Theme.Accent,
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        Parent = btn,
-    })
-    Gradient(underline, Theme.Accent, Theme.AccentGold, 0)
 
     -- konten tab: langsung ditaruh di ScrollingFrame utama (AutomaticCanvasSize)
     local container = Create("Frame", {
@@ -802,12 +925,14 @@ function TabClass.new(window, cfg)
         Window = window,
         Registry = reg,
         Button = btn,
+        Icon = icon,
         Label = label,
-        Underline = underline,
+        Indicator = indicator,
         Container = container,
         Elements = {},
         Order = 0,
         Active = false,
+        FilterQuery = "",
     }, TabClass)
 
     reg:Connect(btn.Activated, function()
@@ -815,14 +940,16 @@ function TabClass.new(window, cfg)
     end)
     reg:Connect(btn.MouseEnter, function()
         if not self.Active then
-            Tween(reg, btn, TI_HOVER, { BackgroundTransparency = 0.88 })
+            Tween(reg, btn, TI_HOVER, { BackgroundTransparency = 0.75 })
             Tween(reg, label, TI_HOVER, { TextColor3 = Theme.Text })
+            Tween(reg, icon, TI_HOVER, { TextColor3 = Theme.Text })
         end
     end)
     reg:Connect(btn.MouseLeave, function()
         if not self.Active then
             Tween(reg, btn, TI_HOVER, { BackgroundTransparency = 1 })
             Tween(reg, label, TI_HOVER, { TextColor3 = Theme.TextDim })
+            Tween(reg, icon, TI_HOVER, { TextColor3 = Theme.TextDim })
         end
     end)
 
@@ -854,6 +981,32 @@ function TabClass:_track(element)
     end
 end
 
+--  Filter pencarian: sembunyikan elemen yang namanya tidak cocok.
+--  Dipanggil oleh search bar window (hanya memengaruhi tab aktif).
+function TabClass:ApplyFilter(query)
+    query = tostring(query or "")
+    self.FilterQuery = query
+    local needle = query:lower()
+    if needle == "" then
+        for _, el in ipairs(self.Elements) do
+            if el.Instance then
+                el.Instance.Visible = true
+            end
+        end
+        return
+    end
+    for _, el in ipairs(self.Elements) do
+        if el.Instance then
+            local name = el.Name
+            if name == nil or name == "" then
+                el.Instance.Visible = true
+            else
+                el.Instance.Visible = string.find(tostring(name):lower(), needle, 1, true) ~= nil
+            end
+        end
+    end
+end
+
 --  Card dasar semua elemen: bg + UICorner + UIStroke + padding + UIListLayout
 function TabClass:_card(className)
     className = className or "Frame"
@@ -870,7 +1023,7 @@ function TabClass:_card(className)
         props.AutoButtonColor = false
     end
     local card = Create(className, props)
-    Corner(card, 8)
+    Corner(card, 10)
     local stroke = Stroke(card, { Color = Theme.StrokeDim, Transparency = 0.35 })
     Create("UIPadding", {
         PaddingTop = UDim.new(0, 10),
@@ -937,7 +1090,7 @@ function TabClass:AddButton(cfg)
     cardHover(reg, card, stroke)
 
     reg:Connect(card.Activated, function()
-        Zap(reg, card, Theme.Accent, 8)
+        Zap(reg, card, Theme.Accent, 10)
         if cfg.Callback then
             cfg.Callback()
         end
@@ -945,6 +1098,7 @@ function TabClass:AddButton(cfg)
 
     local element = {
         Type = "Button",
+        Name = cfg.Name,
         Instance = card,
         Registry = reg,
         Get = function(_)
@@ -964,6 +1118,7 @@ function TabClass:AddButton(cfg)
 end
 
 --// ─────────────────────────── Elemen: TOGGLE ───────────────────────────────
+--  v2: switch ala Wind UI — track memanjang + knob bulat meluncur kilat.
 function TabClass:AddToggle(cfg)
     cfg = cfg or {}
     local reg = Registry.new()
@@ -971,13 +1126,13 @@ function TabClass:AddToggle(cfg)
 
     local row = Create("Frame", {
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 20),
+        Size = UDim2.new(1, 0, 0, 22),
         LayoutOrder = 1,
         Parent = card,
     })
     Create("TextLabel", {
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, -60, 1, 0),
+        Size = UDim2.new(1, -64, 1, 0),
         Text = cfg.Name or "Toggle",
         Font = Theme.FontMedium,
         TextSize = 13,
@@ -987,11 +1142,11 @@ function TabClass:AddToggle(cfg)
         Parent = row,
     })
 
-    -- pill toggle dengan knob meluncur ala kilat
+    -- switch: track 40x20 + knob 16 bulat
     local pill = Create("Frame", {
         AnchorPoint = Vector2.new(1, 0.5),
         Position = UDim2.new(1, 0, 0.5, 0),
-        Size = UDim2.fromOffset(36, 18),
+        Size = UDim2.fromOffset(40, 20),
         BackgroundColor3 = Theme.Track,
         BorderSizePixel = 0,
         Parent = row,
@@ -999,20 +1154,21 @@ function TabClass:AddToggle(cfg)
     Corner(pill, UDim.new(1, 0))
     local pillStroke = Stroke(pill, { Color = Theme.StrokeDim, Transparency = 0.2 })
     local knob = Create("Frame", {
-        AnchorPoint = Vector2.new(1, 0.5),
-        Position = UDim2.new(0, 15, 0.5, 0),
-        Size = UDim2.fromOffset(12, 12),
+        AnchorPoint = Vector2.new(0, 0.5),
+        Position = UDim2.new(0, 2, 0.5, 0),
+        Size = UDim2.fromOffset(16, 16),
         BackgroundColor3 = Theme.TextDim,
         BorderSizePixel = 0,
         Parent = pill,
     })
     Corner(knob, UDim.new(1, 0))
+    Stroke(knob, { Color = Theme.Background, Thickness = 1, Transparency = 0.4 })
 
     local state = { Value = cfg.Default == true, Callback = cfg.Callback }
 
     local function render(instant)
         local goalFill = state.Value and Theme.Accent or Theme.Track
-        local goalKnobPos = state.Value and UDim2.new(1, -3, 0.5, 0) or UDim2.new(0, 15, 0.5, 0)
+        local goalKnobPos = state.Value and UDim2.new(1, -18, 0.5, 0) or UDim2.new(0, 2, 0.5, 0)
         local goalKnobColor = state.Value and Theme.White or Theme.TextDim
         local goalStrokeColor = state.Value and Theme.Accent or Theme.StrokeDim
         if instant then
@@ -1022,7 +1178,7 @@ function TabClass:AddToggle(cfg)
             pillStroke.Color = goalStrokeColor
         else
             Tween(reg, pill, TI_SNAP, { BackgroundColor3 = goalFill })
-            Tween(reg, knob, TI_SNAP, { Position = goalKnobPos, BackgroundColor3 = goalKnobColor })
+            Tween(reg, knob, TI_STRIKE, { Position = goalKnobPos, BackgroundColor3 = goalKnobColor })
             Tween(reg, pillStroke, TI_SNAP, { Color = goalStrokeColor })
         end
     end
@@ -1041,6 +1197,7 @@ function TabClass:AddToggle(cfg)
 
     local element = {
         Type = "Toggle",
+        Name = cfg.Name,
         Instance = card,
         Registry = reg,
         Get = function(_)
@@ -1221,6 +1378,7 @@ function TabClass:AddSlider(cfg)
 
     local element = {
         Type = "Slider",
+        Name = cfg.Name,
         Instance = card,
         Registry = reg,
         Get = function(_)
@@ -1282,9 +1440,9 @@ function TabClass:AddDropdown(cfg)
         AnchorPoint = Vector2.new(1, 0),
         Position = UDim2.new(1, 0, 0, 0),
         Size = UDim2.new(0, 12, 1, 0),
-        Text = "▼",
+        Text = "▾",
         Font = Theme.FontMain,
-        TextSize = 10,
+        TextSize = 12,
         TextColor3 = Theme.TextDim,
         Parent = header,
     })
@@ -1345,7 +1503,6 @@ function TabClass:AddDropdown(cfg)
     local function setExpanded(v)
         expanded = v
         holder.Visible = v
-        arrow.Text = v and "▲" or "▼"
         Tween(reg, arrow, TI_HOVER, { TextColor3 = v and Theme.Accent or Theme.TextDim })
     end
 
@@ -1443,6 +1600,7 @@ function TabClass:AddDropdown(cfg)
 
     local element = {
         Type = "Dropdown",
+        Name = cfg.Name,
         Instance = card,
         Registry = reg,
         Get = function(_)
@@ -1518,7 +1676,7 @@ function TabClass:AddTextInput(cfg)
         LayoutOrder = 2,
         Parent = card,
     })
-    Corner(box, 6)
+    Corner(box, 8)
     Create("UIPadding", {
         PaddingLeft = UDim.new(0, 8),
         PaddingRight = UDim.new(0, 8),
@@ -1534,7 +1692,7 @@ function TabClass:AddTextInput(cfg)
         Tween(reg, boxStroke, TI_HOVER, { Color = Theme.StrokeDim, Transparency = 0.3 })
         Tween(reg, box, TI_HOVER, { BackgroundColor3 = Theme.Background })
         if enterPressed then
-            Zap(reg, box, Theme.Accent, 6)
+            Zap(reg, box, Theme.Accent, 8)
         end
         if cfg.Callback then
             cfg.Callback(box.Text, enterPressed == true)
@@ -1543,6 +1701,7 @@ function TabClass:AddTextInput(cfg)
 
     local element = {
         Type = "TextInput",
+        Name = cfg.Name,
         Instance = card,
         Registry = reg,
         Get = function(_)
@@ -1643,7 +1802,7 @@ function TabClass:AddKeybind(cfg)
             matched = (input.UserInputType == state.Bind)
         end
         if matched then
-            Zap(reg, card, Theme.Accent, 8)
+            Zap(reg, card, Theme.Accent, 10)
             if state.Callback then
                 state.Callback(state.Bind, input)
             end
@@ -1664,6 +1823,7 @@ function TabClass:AddKeybind(cfg)
 
     local element = {
         Type = "Keybind",
+        Name = cfg.Name,
         Instance = card,
         Registry = reg,
         Get = function(_)
@@ -1673,6 +1833,307 @@ function TabClass:AddKeybind(cfg)
             if typeof(enumItem) == "EnumItem" then
                 state.Bind = enumItem
                 display()
+            end
+        end,
+    }
+    self:_track(element)
+    return element
+end
+
+--// ────────────────────────── Elemen: COLORPICKER (v2) ──────────────────────
+--  Picker warna ala Wind UI: kotak Saturasi-Value + slider Hue + HEX/RGB.
+--  Semua elemen digambar murni script (UIGradient), tanpa aset gambar.
+function TabClass:AddColorPicker(cfg)
+    cfg = cfg or {}
+    local reg = Registry.new()
+    local card = self:_card()
+
+    local state = {
+        H = 0.55, S = 1, V = 1,
+        Callback = cfg.Callback,
+    }
+    do
+        local d = cfg.Default or Theme.Accent
+        if typeof(d) == "Color3" then
+            local h, s, v = Color3.toHSV(d)
+            state.H, state.S, state.V = h, s, v
+        end
+    end
+
+    -- ── header: nama + hex + swatch preview ──
+    local header = Create("TextButton", {
+        Text = "",
+        AutoButtonColor = false,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 22),
+        LayoutOrder = 1,
+        Parent = card,
+    })
+    Create("TextLabel", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, -130, 1, 0),
+        Text = cfg.Name or "Warna",
+        Font = Theme.FontMedium,
+        TextSize = 13,
+        TextColor3 = Theme.Text,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextTruncate = Enum.TextTruncate.AtEnd,
+        Parent = header,
+    })
+    local hexLabel = Create("TextLabel", {
+        AnchorPoint = Vector2.new(1, 0.5),
+        Position = UDim2.new(1, -36, 0.5, 0),
+        Size = UDim2.new(0, 76, 1, 0),
+        Text = "#00C3FF",
+        Font = Theme.FontMain,
+        TextSize = 11,
+        TextColor3 = Theme.AccentGold,
+        TextXAlignment = Enum.TextXAlignment.Right,
+        Parent = header,
+    })
+    local swatch = Create("Frame", {
+        AnchorPoint = Vector2.new(1, 0.5),
+        Position = UDim2.new(1, 0, 0.5, 0),
+        Size = UDim2.fromOffset(24, 24),
+        BorderSizePixel = 0,
+        Parent = header,
+    })
+    Corner(swatch, 6)
+    local swatchStroke = Stroke(swatch, { Color = Theme.White, Thickness = 1, Transparency = 0.45 })
+
+    -- ── panel picker (expand/collapse seperti dropdown) ──
+    local panel = Create("Frame", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        Visible = false,
+        LayoutOrder = 2,
+        Parent = card,
+    })
+    Create("UIListLayout", {
+        Padding = UDim.new(0, 8),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Parent = panel,
+    })
+
+    -- kotak Saturation-Value
+    local svBox = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 110),
+        BackgroundColor3 = Color3.fromHSV(state.H, 1, 1),
+        BorderSizePixel = 0,
+        ClipsDescendants = true,
+        LayoutOrder = 1,
+        Parent = panel,
+    })
+    Corner(svBox, 8)
+    local svStroke = Stroke(svBox, { Color = Theme.StrokeDim, Transparency = 0.3 })
+
+    -- gradient putih → transparan (kiri→kanan) = saturasi
+    local whiteLayer = Create("Frame", {
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = Theme.White,
+        BorderSizePixel = 0,
+        Parent = svBox,
+    })
+    Create("UIGradient", {
+        Color = ColorSequence.new(Theme.White, Theme.White),
+        Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0),
+            NumberSequenceKeypoint.new(1, 1),
+        }),
+        Rotation = 0,
+        Parent = whiteLayer,
+    })
+    -- gradient transparan → hitam (atas→bawah) = value
+    local blackLayer = Create("Frame", {
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = Color3.new(0, 0, 0),
+        BorderSizePixel = 0,
+        Parent = svBox,
+    })
+    Create("UIGradient", {
+        Color = ColorSequence.new(Color3.new(0, 0, 0), Color3.new(0, 0, 0)),
+        Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 1),
+            NumberSequenceKeypoint.new(1, 0),
+        }),
+        Rotation = 90,
+        Parent = blackLayer,
+    })
+    local svCursor = Create("Frame", {
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.new(state.S, 0, 1 - state.V, 0),
+        Size = UDim2.fromOffset(14, 14),
+        BackgroundColor3 = Theme.White,
+        BorderSizePixel = 0,
+        ZIndex = 3,
+        Parent = svBox,
+    })
+    Corner(svCursor, UDim.new(1, 0))
+    Stroke(svCursor, { Color = Theme.Background, Thickness = 2, Transparency = 0 })
+
+    -- slider HUE (pelangi)
+    local hueBar = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 14),
+        BackgroundColor3 = Theme.White,
+        BorderSizePixel = 0,
+        LayoutOrder = 2,
+        Parent = panel,
+    })
+    Corner(hueBar, UDim.new(1, 0))
+    Stroke(hueBar, { Color = Theme.Background, Thickness = 1, Transparency = 0.2 })
+    Create("UIGradient", {
+        Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 0, 0)),
+            ColorSequenceKeypoint.new(0.17, Color3.fromRGB(255, 255, 0)),
+            ColorSequenceKeypoint.new(0.33, Color3.fromRGB(0, 255, 0)),
+            ColorSequenceKeypoint.new(0.50, Color3.fromRGB(0, 255, 255)),
+            ColorSequenceKeypoint.new(0.67, Color3.fromRGB(0, 0, 255)),
+            ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255, 0, 255)),
+            ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255, 0, 0)),
+        }),
+        Parent = hueBar,
+    })
+    local hueCursor = Create("Frame", {
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.new(state.H, 0, 0.5, 0),
+        Size = UDim2.fromOffset(4, 18),
+        BackgroundColor3 = Theme.White,
+        BorderSizePixel = 0,
+        ZIndex = 3,
+        Parent = hueBar,
+    })
+    Corner(hueCursor, UDim.new(1, 0))
+    Stroke(hueCursor, { Color = Theme.Background, Thickness = 1, Transparency = 0 })
+
+    -- baris info RGB
+    local rgbLabel = Create("TextLabel", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 14),
+        Text = "RGB 0, 195, 255",
+        Font = Theme.FontMain,
+        TextSize = 11,
+        TextColor3 = Theme.TextDim,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        LayoutOrder = 3,
+        Parent = panel,
+    })
+
+    local function currentColor()
+        return Color3.fromHSV(state.H, state.S, state.V)
+    end
+
+    local function render()
+        local color = currentColor()
+        swatch.BackgroundColor3 = color
+        hexLabel.Text = hexFromColor3(color)
+        rgbLabel.Text = string.format("RGB %d, %d, %d",
+            math.floor(color.R * 255 + 0.5),
+            math.floor(color.G * 255 + 0.5),
+            math.floor(color.B * 255 + 0.5))
+        svBox.BackgroundColor3 = Color3.fromHSV(state.H, 1, 1)
+        svCursor.Position = UDim2.new(state.S, 0, 1 - state.V, 0)
+        hueCursor.Position = UDim2.new(state.H, 0, 0.5, 0)
+    end
+
+    -- interaksi drag (mouse & sentuhan) — pola sama seperti slider
+    local svDragging = false
+    local hueDragging = false
+    local svInput = nil
+    local hueInput = nil
+
+    local function updateSV(x, y)
+        local relX = math.clamp((x - svBox.AbsolutePosition.X) / math.max(svBox.AbsoluteSize.X, 1), 0, 1)
+        local relY = math.clamp((y - svBox.AbsolutePosition.Y) / math.max(svBox.AbsoluteSize.Y, 1), 0, 1)
+        state.S = relX
+        state.V = 1 - relY
+        render()
+        if state.Callback then
+            state.Callback(currentColor())
+        end
+    end
+
+    local function updateHue(x)
+        local rel = math.clamp((x - hueBar.AbsolutePosition.X) / math.max(hueBar.AbsoluteSize.X, 1), 0, 1)
+        state.H = rel
+        render()
+        if state.Callback then
+            state.Callback(currentColor())
+        end
+    end
+
+    reg:Connect(svBox.InputBegan, function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            svDragging = true
+            svInput = input
+            Tween(reg, svStroke, TI_HOVER, { Color = Theme.Stroke, Transparency = 0 })
+            updateSV(input.Position.X, input.Position.Y)
+        end
+    end)
+    reg:Connect(hueBar.InputBegan, function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            hueDragging = true
+            hueInput = input
+            updateHue(input.Position.X)
+        end
+    end)
+    reg:Connect(UserInputService.InputChanged, function(input)
+        if input == svInput or input.UserInputType == Enum.UserInputType.MouseMovement then
+            if svDragging then
+                updateSV(input.Position.X, input.Position.Y)
+            elseif hueDragging then
+                updateHue(input.Position.X)
+            end
+        end
+    end)
+    reg:Connect(UserInputService.InputEnded, function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            if svDragging then
+                svDragging = false
+                svInput = nil
+                Tween(reg, svStroke, TI_HOVER, { Color = Theme.StrokeDim, Transparency = 0.3 })
+                Zap(reg, swatch, Theme.AccentGold, 6)
+            end
+            if hueDragging then
+                hueDragging = false
+                hueInput = nil
+            end
+        end
+    end)
+
+    -- expand/collapse
+    local expanded = false
+    reg:Connect(header.Activated, function()
+        expanded = not expanded
+        panel.Visible = expanded
+        Tween(reg, swatchStroke, TI_HOVER, {
+            Color = expanded and Theme.Accent or Theme.White,
+            Transparency = expanded and 0 or 0.45,
+        })
+        Zap(reg, header, Theme.AccentGold, 6)
+    end)
+
+    render()
+
+    local element = {
+        Type = "ColorPicker",
+        Name = cfg.Name,
+        Instance = card,
+        Registry = reg,
+        Get = function(_)
+            return currentColor()
+        end,
+        Set = function(_, color, silent)
+            if typeof(color) == "Color3" then
+                local h, s, v = Color3.toHSV(color)
+                state.H, state.S, state.V = h, s, v
+                render()
+                if silent ~= true and state.Callback then
+                    state.Callback(currentColor())
+                end
             end
         end,
     }
@@ -1810,13 +2271,14 @@ function TabClass:AddParagraph(cfg)
 end
 
 --// ──────────────────────────────── Window ──────────────────────────────────
+--  v2: layout ala Wind UI — sidebar vertikal (logo + tab ber-ikon + versi)
+--  di kiri, header dengan SEARCH BAR di kanan atas, konten scroll di bawah.
 local WindowClass = {}
 WindowClass.__index = WindowClass
 
-local TITLE_H     = 42
-local TABBAR_H    = 32
-local CONTENT_TOP = TITLE_H + TABBAR_H + 1
-local COLLAPSED_H = TITLE_H + 4
+local SIDEBAR_W   = 156  -- lebar sidebar penuh (nama tab tampil)
+local SIDEBAR_MIN = 48   -- lebar sidebar sempit (hanya ikon, window kecil)
+local HEADER_H    = 46   -- tinggi header (search + tombol kontrol)
 
 --  Ubah ukuran frame tetapi sisi kiri-atas dipertahankan (aman untuk anchor 0.5)
 local function setSizeKeepTopLeft(frame, targetSize)
@@ -1846,7 +2308,7 @@ function ThorUi:CreateWindow(cfg)
     )
 
     -- ukuran default responsif mobile jika tidak ditentukan
-    local size = cfg.Size or (IsMobile() and UDim2.new(0.92, 0, 0.62, 0) or UDim2.new(0, 580, 0, 420))
+    local size = cfg.Size or (IsMobile() and UDim2.new(0.92, 0, 0.62, 0) or UDim2.new(0, 620, 0, 430))
 
     -- ── Frame utama ──
     local frame = Create("Frame", {
@@ -1858,80 +2320,225 @@ function ThorUi:CreateWindow(cfg)
         BorderSizePixel = 0,
         ClipsDescendants = true,
         Active = true,
+        Visible = false, -- muncul setelah splash (atau langsung jika tanpa splash)
         Parent = gui,
     })
-    Corner(frame, 10)
+    Corner(frame, 12)
     Stroke(frame, { Color = Theme.Stroke, Thickness = 1, Transparency = 0.15 })
-    Create("UISizeConstraint", { MinSize = minSize, Parent = frame })
+    local sizeConstraint = Create("UISizeConstraint", { MinSize = minSize, Parent = frame })
     local uiScale = Create("UIScale", { Parent = frame })
 
-    -- ── Title bar (area drag) ──
-    local titleBar = Create("Frame", {
-        Name = "TitleBar",
+    -- ── SIDEBAR (logo + tab vertikal + versi) ──
+    local sidebar = Create("Frame", {
+        Name = "Sidebar",
+        Size = UDim2.new(0, SIDEBAR_W, 1, 0),
         BackgroundColor3 = Theme.BackgroundAlt,
         BorderSizePixel = 0,
-        Size = UDim2.new(1, 0, 0, TITLE_H),
         Active = true,
         Parent = frame,
     })
-    Corner(titleBar, 10)
-    Gradient(titleBar, Theme.BackgroundAlt, Theme.Background, 90)
+    Gradient(sidebar, Theme.BackgroundAlt, Theme.Background, 90)
+
+    -- baris logo (juga area drag)
+    local logoRow = Create("Frame", {
+        Name = "LogoRow",
+        Size = UDim2.new(1, 0, 0, 54),
+        BackgroundTransparency = 1,
+        Active = true,
+        Parent = sidebar,
+    })
     Create("TextLabel", {
         BackgroundTransparency = 1,
         Position = UDim2.new(0, 12, 0, 0),
-        Size = UDim2.new(1, -140, 1, 0),
-        Text = cfg.Title or "ThorUi ⚡",
+        Size = UDim2.new(0, 20, 1, 0),
+        Text = "⚡",
+        Font = Theme.FontBold,
+        TextSize = 18,
+        TextColor3 = Theme.AccentGold,
+        Parent = logoRow,
+    })
+    local logoText = Create("TextLabel", {
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 38, 0, 0),
+        Size = UDim2.new(1, -44, 1, 0),
+        Text = cfg.Title or "ThorUi",
         Font = Theme.FontBold,
         TextSize = 14,
-        TextColor3 = Theme.Text,
+        TextColor3 = Theme.White,
         TextXAlignment = Enum.TextXAlignment.Left,
         TextTruncate = Enum.TextTruncate.AtEnd,
-        Parent = titleBar,
+        Parent = logoRow,
+    })
+    Gradient(logoText, Theme.AccentGold, Theme.Accent, 15)
+
+    -- pembatas bawah logo
+    local logoDivider = Create("Frame", {
+        Position = UDim2.new(0, 10, 0, 54),
+        Size = UDim2.new(1, -20, 0, 1),
+        BackgroundColor3 = Theme.Stroke,
+        BackgroundTransparency = 0.55,
+        BorderSizePixel = 0,
+        Parent = sidebar,
     })
 
-    -- garis petir di bawah title bar (aksen emas → cyan)
-    local thunderLine = Create("Frame", {
-        Position = UDim2.new(0, 0, 0, TITLE_H),
-        Size = UDim2.new(1, 0, 0, 1),
-        BackgroundColor3 = Theme.Accent,
+    -- daftar tab (scrollable vertikal)
+    local tabList = Create("ScrollingFrame", {
+        Name = "TabList",
+        Position = UDim2.new(0, 0, 0, 62),
+        Size = UDim2.new(1, 0, 1, -86),
+        BackgroundTransparency = 1,
         BorderSizePixel = 0,
-        ZIndex = 2,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        AutomaticCanvasSize = Enum.AutomaticSize.Y,
+        ScrollingDirection = Enum.ScrollingDirection.Y,
+        ScrollBarThickness = 2,
+        ScrollBarImageColor3 = Theme.Accent,
+        ScrollBarImageTransparency = 0.4,
+        Parent = sidebar,
+    })
+    Create("UIListLayout", {
+        Padding = UDim.new(0, 4),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Parent = tabList,
+    })
+    Create("UIPadding", {
+        PaddingTop = UDim.new(0, 2),
+        PaddingBottom = UDim.new(0, 4),
+        PaddingLeft = UDim.new(0, 6),
+        PaddingRight = UDim.new(0, 6),
+        Parent = tabList,
+    })
+
+    -- versi di pojok bawah sidebar
+    local versionLabel = Create("TextLabel", {
+        Position = UDim2.new(0, 0, 1, -24),
+        Size = UDim2.new(1, 0, 0, 16),
+        Text = "v" .. ThorUi.Version,
+        Font = Theme.FontMain,
+        TextSize = 10,
+        TextColor3 = Theme.TextDim,
+        BackgroundTransparency = 1,
+        Parent = sidebar,
+    })
+
+    -- ── SISI KANAN: header (search + kontrol) + konten ──
+    local right = Create("Frame", {
+        Name = "Right",
+        Position = UDim2.new(0, SIDEBAR_W, 0, 0),
+        Size = UDim2.new(1, -SIDEBAR_W, 1, 0),
+        BackgroundTransparency = 1,
         Parent = frame,
     })
-    Gradient(thunderLine, Theme.AccentGold, Theme.Accent, 0, NumberSequence.new({
-        NumberSequenceKeypoint.new(0, 0),
-        NumberSequenceKeypoint.new(1, 0.9),
-    }))
+
+    local header = Create("Frame", {
+        Name = "Header",
+        Size = UDim2.new(1, 0, 0, HEADER_H),
+        BackgroundColor3 = Theme.BackgroundAlt,
+        BorderSizePixel = 0,
+        Parent = right,
+    })
+    Gradient(header, Theme.BackgroundAlt, Theme.Background, 90)
+
+    -- strip drag di belakang konten header (search & tombol kontrol Active
+    -- sehingga tidak ikut ter-drag saat diklik)
+    local dragStrip = Create("Frame", {
+        Name = "DragStrip",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Active = true,
+        Parent = header,
+    })
+
+    -- SEARCH BAR (filter elemen di tab aktif, real-time)
+    local searchWrap = Create("Frame", {
+        AnchorPoint = Vector2.new(0, 0.5),
+        Position = UDim2.new(0, 10, 0.5, 0),
+        Size = UDim2.new(1, -102, 0, 30),
+        BackgroundColor3 = Theme.Card,
+        BorderSizePixel = 0,
+        Active = true, -- serap klik agar tidak memicu drag window
+        Parent = header,
+    })
+    Corner(searchWrap, 8)
+    local searchStroke = Stroke(searchWrap, { Color = Theme.StrokeDim, Transparency = 0.35 })
+    Create("TextLabel", {
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 8, 0, 0),
+        Size = UDim2.new(0, 16, 1, 0),
+        Text = "🔍",
+        Font = Theme.FontMain,
+        TextSize = 11,
+        TextColor3 = Theme.TextDim,
+        Parent = searchWrap,
+    })
+    local searchBox = Create("TextBox", {
+        Position = UDim2.new(0, 28, 0, 0),
+        Size = UDim2.new(1, -34, 1, 0),
+        BackgroundTransparency = 1,
+        Text = "",
+        PlaceholderText = "Cari elemen...",
+        PlaceholderColor3 = Theme.TextDim,
+        Font = Theme.FontMain,
+        TextSize = 12,
+        TextColor3 = Theme.Text,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ClearTextOnFocus = false,
+        ClipsDescendants = true,
+        Parent = searchWrap,
+    })
 
     -- objek window (dibuat lebih awal agar bisa dipakai closure tombol kontrol)
     local self = setmetatable({
         Frame = frame,
+        Gui = gui,
         Registry = reg,
         UiScale = uiScale,
-        TitleBar = titleBar,
+        SizeConstraint = sizeConstraint,
+        Sidebar = sidebar,
+        LogoRow = logoRow,
+        LogoText = logoText,
+        VersionLabel = versionLabel,
+        TabList = tabList,
+        Right = right,
+        Header = header,
+        SearchBox = searchBox,
         Tabs = {},
         Collapsed = false,
         _activeTab = nil,
         _minSize = minSize,
         _savedAbs = nil,
+        _narrow = nil,
+        _sidebarW = SIDEBAR_W,
+        _searchQuery = "",
+        _overlays = {},
         CollapseLabel = nil,
     }, WindowClass)
+
+    reg:Connect(searchBox:GetPropertyChangedSignal("Text"), function()
+        self:_applySearch(searchBox.Text)
+    end)
+    reg:Connect(searchBox.Focused, function()
+        Tween(reg, searchStroke, TI_HOVER, { Color = Theme.Accent, Transparency = 0 })
+    end)
+    reg:Connect(searchBox.FocusLost, function()
+        Tween(reg, searchStroke, TI_HOVER, { Color = Theme.StrokeDim, Transparency = 0.35 })
+    end)
 
     -- ── Tombol kontrol (— collapse, ✕ close) ──
     local function makeControl(text, offsetX, hoverColor, onClick)
         local btn = Create("TextButton", {
             Text = "",
             AutoButtonColor = false,
-            AnchorPoint = Vector2.new(1, 0),
-            Position = UDim2.new(1, offsetX, 0, 7),
+            AnchorPoint = Vector2.new(1, 0.5),
+            Position = UDim2.new(1, offsetX, 0.5, 0),
             Size = UDim2.fromOffset(28, 28),
             BackgroundColor3 = Theme.Card,
             BackgroundTransparency = 0.4,
             BorderSizePixel = 0,
             ZIndex = 3,
-            Parent = frame,
+            Parent = header,
         })
-        Corner(btn, 6)
+        Corner(btn, 8)
         local lbl = Create("TextLabel", {
             BackgroundTransparency = 1,
             Size = UDim2.new(1, 0, 1, 0),
@@ -1952,47 +2559,34 @@ function ThorUi:CreateWindow(cfg)
     end
 
     local collapseBtn, collapseLabel = makeControl("—", -64, Theme.AccentGold, function()
-        Zap(reg, collapseBtn, Theme.AccentGold, 6)
+        Zap(reg, collapseBtn, Theme.AccentGold, 8)
         self:SetCollapsed(not self.Collapsed)
     end)
     self.CollapseLabel = collapseLabel
     local closeBtn = makeControl("✕", -34, Theme.Danger, function()
-        Zap(reg, closeBtn, Theme.Danger, 6)
+        Zap(reg, closeBtn, Theme.Danger, 8)
         self:Hide()
     end)
 
-    -- ── Tab bar (horizontal, bisa scroll saat tab banyak) ──
-    local tabBar = Create("ScrollingFrame", {
-        Name = "TabBar",
-        Position = UDim2.new(0, 0, 0, CONTENT_TOP - TABBAR_H),
-        Size = UDim2.new(1, 0, 0, TABBAR_H),
-        BackgroundTransparency = 1,
+    -- garis petir di bawah header (aksen emas → cyan)
+    local thunderLine = Create("Frame", {
+        Position = UDim2.new(0, 0, 0, HEADER_H),
+        Size = UDim2.new(1, 0, 0, 1),
+        BackgroundColor3 = Theme.Accent,
         BorderSizePixel = 0,
-        CanvasSize = UDim2.new(0, 0, 0, 0),
-        AutomaticCanvasSize = Enum.AutomaticSize.X,
-        ScrollingDirection = Enum.ScrollingDirection.X,
-        ScrollBarThickness = 0,
-        Parent = frame,
+        ZIndex = 2,
+        Parent = right,
     })
-    Create("UIListLayout", {
-        FillDirection = Enum.FillDirection.Horizontal,
-        Padding = UDim.new(0, 6),
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        VerticalAlignment = Enum.VerticalAlignment.Center,
-        Parent = tabBar,
-    })
-    Create("UIPadding", {
-        PaddingLeft = UDim.new(0, 10),
-        PaddingRight = UDim.new(0, 10),
-        Parent = tabBar,
-    })
-    self.TabBar = tabBar
+    Gradient(thunderLine, Theme.AccentGold, Theme.Accent, 0, NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 0),
+        NumberSequenceKeypoint.new(1, 0.9),
+    }))
 
     -- ── Konten: ScrollingFrame + AutomaticCanvasSize (elemen tak terbatas) ──
     local content = Create("ScrollingFrame", {
         Name = "Content",
-        Position = UDim2.new(0, 0, 0, CONTENT_TOP),
-        Size = UDim2.new(1, 0, 1, -CONTENT_TOP),
+        Position = UDim2.new(0, 0, 0, HEADER_H + 1),
+        Size = UDim2.new(1, 0, 1, -(HEADER_H + 1)),
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
         CanvasSize = UDim2.new(0, 0, 0, 0),
@@ -2001,7 +2595,7 @@ function ThorUi:CreateWindow(cfg)
         ScrollBarThickness = 3,
         ScrollBarImageColor3 = Theme.Accent,
         ScrollBarImageTransparency = 0.2,
-        Parent = frame,
+        Parent = right,
     })
     self.Content = content
 
@@ -2045,11 +2639,12 @@ function ThorUi:CreateWindow(cfg)
     end)
 
     -- ── Drag window: Mouse & Touch via UserInputService ──
+    -- (area drag: baris logo sidebar + header kanan)
     local dragging = false
     local dragInput = nil
     local dragStart = nil
     local startPos = nil
-    reg:Connect(titleBar.InputBegan, function(input)
+    local function beginDrag(input, handle)
         if input.UserInputType == Enum.UserInputType.MouseButton1
             or input.UserInputType == Enum.UserInputType.Touch then
             -- bawa window ini ke depan
@@ -2062,6 +2657,12 @@ function ThorUi:CreateWindow(cfg)
             dragStart = input.Position
             startPos = frame.Position
         end
+    end
+    reg:Connect(logoRow.InputBegan, function(input)
+        beginDrag(input, logoRow)
+    end)
+    reg:Connect(dragStrip.InputBegan, function(input)
+        beginDrag(input, dragStrip)
     end)
     reg:Connect(UserInputService.InputChanged, function(input)
         if dragging and (input == dragInput or input.UserInputType == Enum.UserInputType.MouseMovement) then
@@ -2131,6 +2732,11 @@ function ThorUi:CreateWindow(cfg)
         end
     end)
 
+    -- ── Responsif: sidebar auto icon-only saat window sempit ──
+    reg:Connect(frame:GetPropertyChangedSignal("AbsoluteSize"), function()
+        self:_updateResponsive()
+    end)
+
     -- daftarkan window
     table.insert(_state.Windows, self)
 
@@ -2142,9 +2748,22 @@ function ThorUi:CreateWindow(cfg)
         ThorUi:SetToggleVisible(true)
     end
 
-    -- animasi kemunculan (kilat!)
-    uiScale.Scale = 0.82
-    Tween(reg, uiScale, TI_STRIKE, { Scale = 1 })
+    -- tata layout awal (sidebar lebar/sembunyi sesuai lebar window)
+    self:_updateResponsive()
+
+    -- ── Splash screen (sekali per sesi) lalu window pop muncul ──
+    local useSplash = cfg.Splash
+    if useSplash == nil then
+        useSplash = not _state.SplashDone
+    end
+    if useSplash then
+        _state.SplashDone = true
+        playSplash(function()
+            self:Show()
+        end)
+    else
+        self:Show()
+    end
 
     return self
 end
@@ -2165,24 +2784,26 @@ function WindowClass:SelectTab(tab)
             t.Active = false
             t.Container.Visible = false
             t.Label.TextColor3 = Theme.TextDim
-            t.Underline.BackgroundTransparency = 1
+            t.Icon.TextColor3 = Theme.TextDim
             t.Button.BackgroundTransparency = 1
+            t.Indicator.Size = UDim2.new(0, 3, 0, 0)
         end
     end
     self._activeTab = tab
     tab.Active = true
     tab.Container.Visible = true
     tab.Label.TextColor3 = Theme.Text
-    tab.Underline.BackgroundTransparency = 0
-    tab.Button.BackgroundTransparency = 0.88
+    tab.Icon.TextColor3 = Theme.AccentGold
+    tab.Button.BackgroundTransparency = 0.55
     tab.Button.BackgroundColor3 = Theme.Card
-    -- animasi underline "menyambar"
-    tab.Underline.Size = UDim2.new(0, 0, 0, 2)
-    Tween(self.Registry, tab.Underline, TI_STRIKE, { Size = UDim2.new(1, -20, 0, 2) })
-    -- konten slide-in kilat
+    -- animasi indikator petir "menyambar" + konten slide-in kilat
+    tab.Indicator.Size = UDim2.new(0, 3, 0, 0)
+    Tween(self.Registry, tab.Indicator, TI_STRIKE, { Size = UDim2.new(0, 3, 0, 18) })
     tab.Container.Position = UDim2.new(0, 0, 0, 8)
     Tween(self.Registry, tab.Container, TI_SNAP, { Position = UDim2.new(0, 0, 0, 0) })
     self.Content.CanvasPosition = Vector2.new(0, 0)
+    -- terapkan filter pencarian yang sedang aktif
+    tab:ApplyFilter(self._searchQuery or "")
 end
 
 function WindowClass:Show()
@@ -2215,21 +2836,23 @@ function WindowClass:Toggle()
     end
 end
 
+--  v2: collapse = window menyusut jadi sidebar saja (kanan disembunyikan).
 function WindowClass:SetCollapsed(collapsed)
     if self.Collapsed == collapsed then
         return
     end
     self.Collapsed = collapsed
+    local sideW = self._sidebarW or SIDEBAR_W
     if collapsed then
         self._savedAbs = self.Frame.AbsoluteSize
-        self.TabBar.Visible = false
-        self.Content.Visible = false
+        self.Right.Visible = false
         self.Grip.Visible = false
-        setSizeKeepTopLeft(self.Frame, Vector2.new(self.Frame.AbsoluteSize.X, COLLAPSED_H))
+        self.SizeConstraint.MinSize = Vector2.new(SIDEBAR_MIN, 120)
+        setSizeKeepTopLeft(self.Frame, Vector2.new(sideW, self.Frame.AbsoluteSize.Y))
     else
-        self.TabBar.Visible = true
-        self.Content.Visible = true
+        self.Right.Visible = true
         self.Grip.Visible = true
+        self.SizeConstraint.MinSize = self._minSize
         if self._savedAbs then
             setSizeKeepTopLeft(self.Frame, self._savedAbs)
         end
@@ -2237,14 +2860,247 @@ function WindowClass:SetCollapsed(collapsed)
     if self.CollapseLabel then
         self.CollapseLabel.Text = collapsed and "+" or "—"
     end
-    Zap(self.Registry, self.TitleBar, Theme.AccentGold, 10)
+    Zap(self.Registry, self.Header, Theme.AccentGold, 8)
 end
 
 function WindowClass:SetKeybind(key)
     ThorUi:SetKeybind(key)
 end
 
+function WindowClass:SetTitle(text)
+    self.LogoText.Text = tostring(text or "ThorUi")
+end
+
+--  Sidebar responsif: window sempit (< 520px) → icon-only (lebar 48px).
+function WindowClass:_updateResponsive()
+    local narrow = self.Frame.AbsoluteSize.X < 520
+    if narrow == self._narrow then
+        return
+    end
+    self._narrow = narrow
+    local w = narrow and SIDEBAR_MIN or SIDEBAR_W
+    self._sidebarW = w
+    self.Sidebar.Size = UDim2.new(0, w, 1, 0)
+    self.Right.Position = UDim2.new(0, w, 0, 0)
+    self.Right.Size = UDim2.new(1, -w, 1, 0)
+    self.LogoText.Visible = not narrow
+    self.VersionLabel.Visible = not narrow
+    for _, t in ipairs(self.Tabs) do
+        t.Label.Visible = not narrow
+    end
+    if self.Collapsed then
+        setSizeKeepTopLeft(self.Frame, Vector2.new(w, self.Frame.AbsoluteSize.Y))
+    end
+end
+
+--  Search bar: filter elemen di tab aktif secara real-time.
+function WindowClass:_applySearch(text)
+    self._searchQuery = tostring(text or "")
+    if self._activeTab then
+        self._activeTab:ApplyFilter(self._searchQuery)
+    end
+end
+
+--// ──────────────── CONFIRM DIALOG (modal ala Wind UI) ──────────────────────
+--  Window:Confirm({
+--      Title = "Hapus semua data?",
+--      Content = "Tindakan ini tidak bisa dibatalkan.",
+--      ConfirmText = "Ya, hapus", CancelText = "Batal",
+--      OnConfirm = function() ... end, OnCancel = function() ... end,
+--  })
+function WindowClass:Confirm(cfg)
+    cfg = cfg or {}
+    local gui = self.Gui or self.Frame.Parent
+    if not gui then
+        return
+    end
+    local reg = Registry.new()
+
+    -- overlay gelap + tombol latar (klik di luar kartu = batal)
+    local overlay = Create("Frame", {
+        Name = "ThorUi_Confirm",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ZIndex = 80,
+        Parent = gui,
+    })
+    local bgBtn = Create("TextButton", {
+        Text = "",
+        AutoButtonColor = false,
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = Color3.new(0, 0, 0),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ZIndex = 80,
+        Parent = overlay,
+    })
+
+    -- kartu dialog (CanvasGroup agar bisa fade)
+    local card = Create("CanvasGroup", {
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        Size = UDim2.new(0, 320, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        BackgroundColor3 = Theme.BackgroundAlt,
+        BorderSizePixel = 0,
+        GroupTransparency = 1,
+        Active = true, -- serap klik agar bgBtn tidak terpicu
+        ZIndex = 81,
+        Parent = overlay,
+    })
+    Corner(card, 12)
+    Stroke(card, { Color = Theme.Stroke, Transparency = 0.25 })
+    local cardScale = Create("UIScale", { Scale = 0.85, Parent = card })
+
+    local inner = Create("Frame", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        Parent = card,
+    })
+    Create("UIPadding", {
+        PaddingTop = UDim.new(0, 16),
+        PaddingBottom = UDim.new(0, 14),
+        PaddingLeft = UDim.new(0, 16),
+        PaddingRight = UDim.new(0, 16),
+        Parent = inner,
+    })
+    Create("UIListLayout", {
+        Padding = UDim.new(0, 10),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Parent = inner,
+    })
+
+    Create("TextLabel", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 16),
+        Text = cfg.Title or "Konfirmasi",
+        Font = Theme.FontBold,
+        TextSize = 14,
+        TextColor3 = Theme.Text,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextTruncate = Enum.TextTruncate.AtEnd,
+        LayoutOrder = 1,
+        Parent = inner,
+    })
+    Create("TextLabel", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        Text = cfg.Content or "",
+        Font = Theme.FontMain,
+        TextSize = 12,
+        TextColor3 = Theme.TextDim,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Top,
+        LayoutOrder = 2,
+        Parent = inner,
+    })
+
+    -- baris tombol: Batal | Konfirmasi
+    local btnRow = Create("Frame", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 34),
+        LayoutOrder = 3,
+        Parent = inner,
+    })
+    Create("UIListLayout", {
+        FillDirection = Enum.FillDirection.Horizontal,
+        Padding = UDim.new(0, 8),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Parent = btnRow,
+    })
+
+    local function makeDialogBtn(order, bg, txtColor, text, onClick)
+        local btn = Create("TextButton", {
+            Text = "",
+            AutoButtonColor = false,
+            Size = UDim2.new(0.5, -4, 1, 0),
+            BackgroundColor3 = bg,
+            BorderSizePixel = 0,
+            LayoutOrder = order,
+            Parent = btnRow,
+        })
+        Corner(btn, 8)
+        local lbl = Create("TextLabel", {
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 1, 0),
+            Text = text,
+            Font = Theme.FontBold,
+            TextSize = 12,
+            TextColor3 = txtColor,
+            Parent = btn,
+        })
+        reg:Connect(btn.MouseEnter, function()
+            Tween(reg, btn, TI_HOVER, { BackgroundColor3 = Theme.CardHover })
+        end)
+        reg:Connect(btn.Activated, function()
+            Zap(reg, btn, Theme.Accent, 8)
+            onClick()
+        end)
+        _ = lbl
+        return btn
+    end
+
+    local entry = { Overlay = overlay, Reg = reg, Closed = false }
+    table.insert(self._overlays, entry)
+
+    local function close(result)
+        if entry.Closed then
+            return
+        end
+        entry.Closed = true
+        for i, e in ipairs(self._overlays) do
+            if e == entry then
+                table.remove(self._overlays, i)
+                break
+            end
+        end
+        local out = Tween(reg, card, TI_EXIT, { GroupTransparency = 1 })
+        Tween(reg, cardScale, TI_EXIT, { Scale = 0.9 })
+        Tween(reg, bgBtn, TI_EXIT, { BackgroundTransparency = 1 })
+        out.Completed:Connect(function()
+            reg:Clean()
+            if overlay.Parent then
+                overlay:Destroy()
+            end
+            if result and cfg.OnConfirm then
+                cfg.OnConfirm()
+            elseif not result and cfg.OnCancel then
+                cfg.OnCancel()
+            end
+        end)
+    end
+
+    makeDialogBtn(1, Theme.Card, Theme.TextDim, cfg.CancelText or "Batal", function()
+        close(false)
+    end)
+    local confirmBtn = makeDialogBtn(2, Theme.Accent, Theme.White, cfg.ConfirmText or "Konfirmasi", function()
+        close(true)
+    end)
+    Gradient(confirmBtn, Theme.Accent, Theme.AccentGold, 15)
+
+    reg:Connect(bgBtn.Activated, function()
+        close(false)
+    end)
+
+    -- animasi masuk
+    Tween(reg, bgBtn, TI_SNAP, { BackgroundTransparency = 0.45 })
+    Tween(reg, card, TI_SNAP, { GroupTransparency = 0 })
+    Tween(reg, cardScale, TI_STRIKE, { Scale = 1 })
+end
+
 function WindowClass:Destroy()
+    -- tutup semua dialog Confirm yang masih terbuka
+    for _, o in ipairs(self._overlays) do
+        o.Reg:Clean()
+        if o.Overlay.Parent then
+            o.Overlay:Destroy()
+        end
+    end
+    self._overlays = {}
     -- putuskan SEMUA koneksi milik window ini (anti memory-leak)
     self.Registry:Clean()
     for _, tab in ipairs(self.Tabs) do
@@ -2274,11 +3130,46 @@ function WindowClass:Destroy()
     end
 end
 
+--// ──────────────────────── Hancurkan SELURUH UI ────────────────────────────
+function ThorUi:Destroy()
+    -- 1) hancurkan semua window (memicu Clean semua registry window/tab/elemen)
+    local windows = {}
+    for _, w in ipairs(_state.Windows) do
+        table.insert(windows, w)
+    end
+    for _, w in ipairs(windows) do
+        w:Destroy()
+    end
+    -- 2) tutup semua notifikasi (cancel task.delay yang masih berjalan)
+    local notifs = {}
+    for _, n in ipairs(_state.Notifs) do
+        table.insert(notifs, n)
+    end
+    for _, n in ipairs(notifs) do
+        despawnNotification(n, true)
+    end
+    -- 3) hentikan splash jika sedang berjalan
+    _state.SplashActive = false
+    -- 4) bersihkan garbage table level library (semua connection & tween)
+    _state.Registry:Clean()
+    _state.KeyConn = nil
+    _state.TogglePulse = nil
+    -- 5) hancurkan ScreenGui
+    if _state.Gui then
+        _state.Gui:Destroy()
+    end
+    _state.Gui = nil
+    _state.NotifyHolder = nil
+    _state.ToggleButton = nil
+    _state.Windows = {}
+    _state.Notifs = {}
+end
+
 return ThorUi
 
 --[[ ═════════════════════════════════════════════════════════════════════════
         CONTOH IMPLEMENTASI
-        ════════════════════════════════════════════════════════════════════════
+        ═══════════════════════════════════════════════════════════════════════
 
         A. CARA PEMAKAIAN DI ROBLOX STUDIO
            1. Buat ModuleScript bernama "ThorUi" (misalnya di ReplicatedStorage),
@@ -2299,10 +3190,11 @@ return ThorUi
 
         local Window = ThorUi:CreateWindow({
                 Title   = "ThorUi ⚡",
-                Size    = UDim2.new(0, 580, 0, 420),  -- kosongkan agar otomatis responsif mobile
-                MinSize = Vector2.new(400, 250),      -- batas minimal saat resize
+                Size    = UDim2.new(0, 620, 0, 430),  -- kosongkan agar otomatis responsif mobile
+                MinSize = Vector2.new(400, 250),       -- batas minimal saat resize
                 Keybind = Enum.KeyCode.RightControl,  -- toggle buka/tutup UI (PC)
-                -- ShowToggle = false,                -- sembunyikan tombol ⚡ melayang
+                Splash = true,                        -- splash screen ala Wind UI (default: window pertama)
+                -- ShowToggle = false,                 -- sembunyikan tombol ⚡ melayang
         })
 
         local Tab  = Window:CreateTab({ Name = "Main",  Icon = "⚡" })
@@ -2317,6 +3209,21 @@ return ThorUi
                                 Title = "⚡ Petir Menyambar",
                                 Content = "BOOM! Petir berhasil dikirim ke target.",
                                 Duration = 3,
+                        })
+                end,
+        })
+
+        Tab:AddButton({
+                Name = "Hapus Semua (pakai Confirm)",
+                Callback = function()
+                        Window:Confirm({
+                                Title = "Hapus semua data?",
+                                Content = "Tindakan ini tidak bisa dibatalkan. Lanjutkan?",
+                                ConfirmText = "Ya, hapus",
+                                CancelText = "Batal",
+                                OnConfirm = function()
+                                        ThorUi:Notify({ Title = "💥 Dihapus", Content = "Data telah dibersihkan." })
+                                end,
                         })
                 end,
         })
@@ -2352,6 +3259,14 @@ return ThorUi
                 end,
         })
 
+        Tab:AddColorPicker({
+                Name = "Warna Petir",
+                Default = Color3.fromRGB(0, 195, 255),
+                Callback = function(color)
+                        print("Warna:", color)
+                end,
+        })
+
         Tab:AddTextInput({
                 Name = "Nama Target",
                 Placeholder = "Ketik nama pemain...",
@@ -2369,10 +3284,11 @@ return ThorUi
         })
 
         Tab2:AddParagraph({
-                Title = "Tentang ThorUi",
-                Text = "UI library bertema Dewa Petir: gelap, snappy, dan responsif. "
-                        .. "Drag window dari title bar, resize dari sudut kanan bawah, "
-                        .. "dan geser tombol ⚡ melayang ke mana pun (snap otomatis ke tepi).",
+                Title = "Tentang ThorUi v2",
+                Text = "Layout ala Wind UI dengan tema Dewa Petir: sidebar tab "
+                        .. "ber-ikon, search bar untuk filter elemen, splash screen, "
+                        .. "ColorPicker, dan Confirm dialog. Drag window dari logo/sidebar "
+                        .. "atau header, resize dari sudut kanan bawah.",
         })
 
         ThorUi:Notify({ Title = "⚡ Petir Menyambar", Content = "Script berhasil dimuat!", Duration = 3 })
@@ -2382,12 +3298,15 @@ return ThorUi
         -- godMode:Set(true, false)  → set nilai TANPA callback
         -- godMode:Get()             → ambil nilai
         -- Window:Toggle() / Window:Destroy()
+        -- Window:SetTitle("Judul Baru")
         -- ThorUi:Destroy()          → hancurkan seluruh UI + bersihkan memory
 
         ──────────────────────────── potong di sini ────────────────────────────
 
         B. CARA PEMAKAIAN DI EXECUTOR
-           Salin seluruh file ini ke script executor, bungkus sebagai module
-           (atau gabungkan dengan blok contoh di atas), lalu jalankan.
-           ScreenGui otomatis mencoba CoreGui, fallback ke PlayerGui.
+           Satu baris (loader otomatis dari GitHub):
+               loadstring(game:HttpGet("https://raw.githubusercontent.com/dwisetyabudi15581/ThorUi/main/Loader.lua"))()
+           Atau salin seluruh file ini ke executor, bungkus sebagai module,
+           lalu panggil seperti contoh di atas. ScreenGui otomatis mencoba
+           CoreGui, fallback ke PlayerGui.
 ]]
