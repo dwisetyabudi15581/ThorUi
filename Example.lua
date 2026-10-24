@@ -15,7 +15,7 @@ local ThorUi = require(ReplicatedStorage:WaitForChild("ThorUi"))
 
 local Window = ThorUi:CreateWindow({
         Title = "ThorUi ⚡",
-        Size = UDim2.new(0, 540, 0, 350),  -- v2.2.2: default ringkas; kosongkan agar otomatis responsif mobile
+        Size = UDim2.new(0, 440, 0, 390),  -- v2.2.3: default rada persegu; kosongkan agar otomatis responsif + SELALU muat di layar
         MinSize = Vector2.new(400, 250),   -- batas minimal saat resize
         Keybind = Enum.KeyCode.RightControl, -- toggle buka/tutup UI (PC)
         Splash = true,                      -- splash screen (default: window pertama)

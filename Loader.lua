@@ -278,8 +278,12 @@ Tab3:AddParagraph({
                 .. "   untuk MINIMIZE menu — semua fitur di dalamnya terlipat\n"
                 .. "   biar daftar lebih rapi (panah di kanan judul berputar).\n"
                 .. "8) v2.2.2: SEMUA section mulai TERLIPAT saat pertama execute;\n"
-                .. "   ukuran default window kini ringkas (540x350); panah lipat\n"
-                .. "   & panah dropdown DIGAMBAR (bukan glyph font).",
+                .. "   panah lipat & panah dropdown DIGAMBAR (bukan glyph font).\n"
+                .. "9) v2.2.3: ukuran default window RADA PERSEGU & DIJAMIN\n"
+                .. "   MUAT di layar apa pun perangkat — fix 'window langsung\n"
+                .. "   terpotong padahal belum diseret ke tepi layar' (akarnya:\n"
+                .. "   default lama 540px lebih lebar dari layar hp karena\n"
+                .. "   deteksi device keliru melaporkan adanya mouse).",
 })
 
 Tab3:AddParagraph({
@@ -335,7 +339,17 @@ Tab3:AddParagraph({
                 .. "    perangkat — itu 'kotak' yang dulu terlihat); SEMUA\n"
                 .. "    section mulai TERLIPAT biar rapi (Collapsed = false\n"
                 .. "    untuk mulai terbuka); DRAG window bebas TANPA batas\n"
-                .. "    layar; ukuran default window diringkas jadi 540x350.",
+                .. "    layar; ukuran default window diringkas jadi 540x350.\n"
+                .. "15) v2.2.3: UKURAN DEFAULT RADA PERSEGU + SELALU MUAT DI LAYAR\n"
+                .. "    (440x390 di layar lebar; proporsional di layar hp).\n"
+                .. "    FIX 'drag bebas belum work — window langsung terpotong\n"
+                .. "    padahal belum sampai pinggir layar': akarnya default\n"
+                .. "    lama 540px LEBIH LEBAR dari layar hp (deteksi\n"
+                .. "    MouseEnabled keliru di sebagian Android/emulator) —\n"
+                .. "    kini default dihitung murni dari dimensi layar aktual,\n"
+                .. "    jadi tak mungkin terpotong lagi. Ambang sidebar\n"
+                .. "    icon-only turun 520 → 440px (default persegu tetap\n"
+                .. "    menampilkan NAMA tab).",
 })
 
 Tab3:AddSection({ Name = "INFO" })

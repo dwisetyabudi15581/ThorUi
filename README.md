@@ -1,12 +1,12 @@
 # ⚡ ThorUi v2 — Roblox UI Library bertema Dewa Petir
 
 > UI library untuk Roblox dengan tema **Thor / Dewa Petir**: gelap, snappy, dan elektrik.
-> **v2.2.2: PANAH ASLI (DIGAMBAR — fix "kotak" tofu di judul section) + SEMUA SECTION MULAI TERLIPAT saat pertama execute + DRAG WINDOW BEBAS TANPA BATAS LAYAR + ukuran default ringkas 540×350** + v2.2.1: MENU (SECTION) BISA DI-MINIMIZE — klik judulnya untuk melipat semua fitur di dalamnya (`Section:Toggle()` / `:SetCollapsed()` / `:IsCollapsed()`)** + v2.2.0: OPTIMASI PERFORMA — UI dibikin seringan mungkin: pengukur teks ber-cache (`GetTextSize` hanya saat teks/lebar benar-benar berubah), re-ukur digabung maksimal 1 pass per frame, tween otomatis keluar dari registry saat selesai (dulu menumpuk ribuan entri mati), hover card hanya di perangkat bermouse, search debounce 0.1 detik + rebranding total (desain 100% original ThorUi)** + v2.1.5 hapus "kotak abu-abu" di belakang nilai slider/dropdown + v2.1.4 fix gradien kotor (UIGradient = TINT) + v2.1.3 fix error fatal `'Value' is not a valid member of UDim'` — sidebar tab, search bar, splash screen, ColorPicker, Confirm dialog.
+> **v2.2.3: UKURAN DEFAULT RADA PERSEGU (440×390) + FIX "window langsung terpotong padahal belum sampai pinggir layar" — ukuran default kini dihitung murni dari dimensi layar aktual (dijamin muat di semua perangkat, tak lagi bergantung deteksi mouse yang keliru melaporkan MouseEnabled di sebagian Android/emulator) + ambang sidebar icon-only turun 520→430px** + v2.2.2: PANAH ASLI (DIGAMBAR — fix "kotak" tofu di judul section) + SEMUA SECTION MULAI TERLIPAT saat pertama execute + DRAG WINDOW BEBAS TANPA BATAS LAYAR + v2.2.1: MENU (SECTION) BISA DI-MINIMIZE — klik judulnya untuk melipat semua fitur di dalamnya (`Section:Toggle()` / `:SetCollapsed()` / `:IsCollapsed()`)** + v2.2.0: OPTIMASI PERFORMA — UI dibikin seringan mungkin: pengukur teks ber-cache (`GetTextSize` hanya saat teks/lebar benar-benar berubah), re-ukur digabung maksimal 1 pass per frame, tween otomatis keluar dari registry saat selesai (dulu menumpuk ribuan entri mati), hover card hanya di perangkat bermouse, search debounce 0.1 detik + rebranding total (desain 100% original ThorUi)** + v2.1.5 hapus "kotak abu-abu" di belakang nilai slider/dropdown + v2.1.4 fix gradien kotor (UIGradient = TINT) + v2.1.3 fix error fatal `'Value' is not a valid member of UDim'` — sidebar tab, search bar, splash screen, ColorPicker, Confirm dialog.
 > Dukungan penuh **PC & Mobile** · Window *draggable* & *resizable* · **100% murni script** (tanpa Asset ID eksternal) · **Anti memory-leak**
 
 | | |
 |---|---|
-| **Versi** | 2.2.2 |
+| **Versi** | 2.2.3 |
 | **Tipe** | ModuleScript tunggal (Luau), tanpa dependensi |
 | **Platform** | PC (Mouse + Keyboard) & Mobile (Touch) |
 | **Aset** | `Instance.new` / `UICorner` / `UIStroke` / `UIGradient` saja — anti asset takedown |
@@ -18,7 +18,7 @@
 ### Baru di v2.0.0 (tampilan modern)
 
 - **Splash screen** — layar pembuka dengan logo ⚡ memantul, progress bar petir, dan status menggemas ("Memanggil petir...", "Menempa Mjolnir..."). Muncul otomatis sekali per sesi, bisa dimatikan dengan `Splash = false`.
-- **Sidebar tab vertikal** — tab ber-ikon di sisi kiri, dengan indikator petir yang "menyambar" saat tab aktif. Saat window sempit (< 520px), sidebar otomatis menyusut jadi icon-only.
+- **Sidebar tab vertikal** — tab ber-ikon di sisi kiri, dengan indikator petir yang "menyambar" saat tab aktif. Saat window sempit (< 430px), sidebar otomatis menyusut jadi icon-only.
 - **Search bar** — kotak pencarian di header yang memfilter elemen tab aktif secara real-time. Ketik "toggle" → hanya elemen bernama toggle yang tampil.
 - **ColorPicker** — picker warna lengkap: kotak Saturasi-Value + slider Hue pelangi + tampilan HEX/RGB, semuanya digambar murni dengan `UIGradient` (tanpa aset gambar).
 - **Confirm dialog** — modal konfirmasi overlay dengan animasi pop + fade; klik area gelap = batal.
@@ -52,12 +52,19 @@
 - **Gesture source-lock menyeluruh** — drag window, resize, slider, dan ikon ⚡ mengunci sumber input saat gesture dimulai: di perangkat *hybrid* (PC layar sentuh / tablet + mouse) posisi mouse yang menetap tidak lagi bikin UI meloncat; jari kedua tidak mengganggu drag yang sedang berjalan.
 - **Sentuhan mobile makin nyaman** — nilai slider tidak terpotong (`TextTruncate`), baris opsi dropdown 24→28px, kartu Confirm dialog auto-fit di layar sempit.
 
+### Baru di v2.2.3 (dari permintaan: "ukuran default bikin rada persegi, jangan terlalu wide; drag bebas belum work — window langsung kepotong padahal belum sampai pinggir layar")
+
+- **Ukuran default RADA PERSEGU** — window tidak lagi terlalu lebar: rasio akhir selalu antara 1:1 dan 1.15:1, dihitung murni dari **dimensi layar aktual**: lebar = terkecil dari `440px` / 86% lebar layar / 62% tinggi layar; tinggi = terkecil dari `390px` / 62% tinggi layar / 1.15× lebar. Layar lebar (PC/landscape) terbuka di **440 × 390**, layar hp portrait proporsional mengikuti layar — tidak lagi memanjang seperti pita. Tetap bisa di-resize / di-minimize / diatur sendiri lewat `Size` & `MinSize`.
+- **FIX "window langsung terpotong padahal belum sampai pinggir layar"** — akarnya **bukan** clamp drag (drag window memang sudah nol clamp sejak v2.2.2), melainkan ukuran default yang dipilih lewat **deteksi `MouseEnabled`**: sebagian Android / emulator / executor melaporkan `MouseEnabled = true` walau perangkat tanpa mouse → ThorUi salah mengambil default PC **540 px** yang lebih lebar dari layar HP → window tampak terpotong di kedua sisi sejak muncul. Kini ukuran default dihitung **murni dari dimensi viewport** → dijamin muat di semua perangkat, selalu menyisakan margin terlihat di semua sisi, dan `IsMobile()` dihapus dari logika sizing.
+- **Margin anti-nempel** — auto-clamp `MinSize` untuk layar kecil diperlebar (margin 20 → 56px): window di layar kecil pun tetap berjarak nyaman dari tepi layar, jadi drag tidak langsung menabrak tepi.
+- **Sidebar tetap menampilkan nama tab** — ambang icon-only diturunkan 520 → 430px: default persegu 440px tetap memunculkan nama tab; hanya layar benar-benar sempit (hp portrait) yang otomatis icon-only.
+
 ### Baru di v2.2.2 (dari permintaan: "AddSection jangan kotak — ganti anak panah; drag jangan ada batas; semua section tutup saat pertama execute; UI jangan terlalu gede")
 
 - **Panah ASLI (DIGAMBAR, bukan glyph)** — akar "kotak" di judul section ternyata glyph unicode `▾` (U+25BE) yang **tidak tersedia di font Roblox (Gotham)**, sehingga dirender sebagai **kotak kosong (tofu)** di sebagian perangkat. Panah lipat section & panah dropdown kini **DIGAMBAR dari 2 batang miring** (geometri murni `Instance.new` — tanpa font, tanpa Asset ID): **dijamin tampil sebagai panah di semua perangkat**, tetap beranimasi berputar (0° = terbuka ↔ -90° = terlipat).
 - **Semua section MULAI TERLIPAT** — saat pertama execute, semua menu tampil dalam keadaan TERTUTUP supaya daftar fitur langsung rapi; klik judulnya untuk membuka. Default `Collapsed` kini `true` — beri `Collapsed = false` agar menu tertentu mulai terbuka.
 - **Drag window TANPA BATAS** — window bisa digeser bebas keluar layar (kiri/kanan/atas/bawah — nol clamp; dulu di-clamp minimal 56px terlihat). Tidak akan hilang selamanya: saat window dimunculkan lagi (tombol ⚡ / keybind), posisinya otomatis ditarik balik ke dalam layar.
-- **Ukuran default ringkas** — window PC kini terbuka di **540 × 350 px** (dulu 620 × 430 — "kegedean" di layar kecil). Tetap bisa di-resize / di-minimize / diatur sendiri lewat `Size` & `MinSize`.
+- **Ukuran default ringkas** — window PC kini terbuka di **540 × 350 px** (dulu 620 × 430 — "kegedean" di layar kecil). *(Sejak v2.2.3 dipersegu menjadi 440 × 390 dan dihitung dari dimensi layar — lihat seksi v2.2.3 di atas.)* Tetap bisa di-resize / di-minimize / diatur sendiri lewat `Size` & `MinSize`.
 
 ### Baru di v2.2.1 (menu bisa di-minimize — dari permintaan: "di dalam menu ada fitur, tolong tambahkan minimize menu biar lebih rapi")
 
@@ -153,7 +160,7 @@ local ThorUi = require(ReplicatedStorage:WaitForChild("ThorUi"))
 
 local Window = ThorUi:CreateWindow({
     Title   = "ThorUi ⚡",
-    Size    = UDim2.new(0, 540, 0, 350),   -- v2.2.2: default ringkas; kosongkan agar otomatis responsif
+    Size    = UDim2.new(0, 440, 0, 390),   -- v2.2.3: default rada persegu; kosongkan agar otomatis responsif + selalu muat
     MinSize = Vector2.new(400, 250),       -- batas minimal saat resize
     Keybind = Enum.KeyCode.RightControl,   -- toggle buka/tutup UI (PC)
 })
@@ -351,7 +358,7 @@ menu:SetDescription("teks keterangan di bawah judul menu")
 | Resize window | Sentuh & geser handle sudut kanan-bawah | Klik & tarik handle |
 | Toggle UI | Ketuk tombol ⚡ melayang (bisa digeser bebas) | `RightControl` |
 | Semua tombol | `Activated` event — bekerja untuk tap maupun klik | sama |
-| Ukuran window | Default `0.92 × 0.62` skala layar, auto-clamp | Default `540 × 350` px (v2.2.2, ringkas) |
+| Ukuran window | Default dari dimensi layar: 86% lebar / maks 1.15× lebar (rada persegu, muat pasti) | Default dari dimensi layar: `440 × 390` px (v2.2.3, rada persegu, muat pasti) |
 
 ---
 

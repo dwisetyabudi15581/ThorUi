@@ -153,6 +153,34 @@
 --                         620 x 430) — tampil langsung proporsional,
 --                         tetap bisa di-resize / minimize sesuka hati.
 --
+--  BARU DI v2.2.3 (permintaan user: "ukuran default bikin rada persegi, jangan
+--                  terlalu wide; drag bebas belum work — window langsung
+--                  terpotong padahal belum sampai pinggir layar")
+--  • Rada persegu        : ukuran default window kini benar2 RADA PERSEGU
+--                          (rasio akhir 1:1 s.d. 1.15:1), dihitung murni
+--                          dari DIMENSI layar aktual: lebar = terkecil dari
+--                          440px / 86% lebar layar / 62% tinggi layar;
+--                          tinggi = terkecil dari 390px / 62% tinggi layar
+--                          / 1.15x lebar (lihat CreateWindow)
+--  • Fix "terpotong"     : AKARNYA BUKAN clamp drag (drag window memang
+--                          sudah NOL clamp) — default lama dipilih lewat
+--                          deteksi MouseEnabled: sebagian Android/emulator/
+--                          executor melaporkan MouseEnabled = true walau
+--                          perangkat TANPA mouse → salah mengambil default
+--                          PC 540px yang LEBIH LEBAR dari layar HP →
+--                          window tampak terpotong di kedua sisi SEJAK
+--                          MUNCUL ("belum sampai pinggir layar" pun sudah
+--                          kepotong). Kini default murni dari dimensi
+--                          viewport → DIJAMIN muat + selalu menyisakan
+--                          margin terlihat di semua sisi, jadi drag tidak
+--                          langsung menabrak tepi layar
+--  • Margin anti-nempel  : auto-clamp MinSize utk layar kecil diperlebar
+--                          (margin 20 → 56px) — window kecil pun tetap
+--                          berjarak nyaman dari tepi layar
+--  • Sidebar tetap label : ambang icon-only diturunkan 520 → 430 px —
+--                          default 440px tetap menampilkan NAMA tab;
+--                          hanya layar benar2 sempit (hp) yang icon-only
+--
 --  FITUR LANJUTAN
 --  • Tema Lightning & Thunder : Midnight Blue + Electric Blue / Lightning Gold
 --  • Animasi snappy ala kilat : TweenService (Back / Quart / Quad, cepat)
@@ -213,7 +241,7 @@ local LocalPlayer = Players.LocalPlayer
 
 --// ─────────────────────────────── Library ──────────────────────────────────
 local ThorUi = {
-    Version = "2.2.2",
+    Version = "2.2.3",
 }
 
 --// ──────────────────────────────── Tema ────────────────────────────────────
@@ -464,9 +492,12 @@ local function cardHover(registry, card, stroke)
 end
 
 --// ──────────────────────── Util platform & angka ───────────────────────────
-local function IsMobile()
-    return UserInputService.TouchEnabled and not UserInputService.MouseEnabled
-end
+--  v2.2.3: fungsi IsMobile() DIHAPUS — ukuran default window kini dihitung
+--  murni dari DIMENSI viewport (lihat CreateWindow). TouchEnabled /
+--  MouseEnabled terbukti tidak andal di sebagian Android/emulator/executor
+--  (sering melaporkan MouseEnabled = true di perangkat tanpa mouse →
+--  default PC 540px pernah terpasang di layar HP yang lebih sempit →
+--  window tampak langsung terpotong di kedua sisi).
 
 local function GetViewport()
     local camera = workspace.CurrentCamera
@@ -3045,16 +3076,33 @@ function ThorUi:CreateWindow(cfg)
     local viewport = GetViewport()
 
     -- batas minimal ukuran (UISizeConstraint) + auto-clamp untuk layar kecil
+    -- v2.2.3: margin auto-clamp diperlebar 20 → 56 px — window di layar kecil
+    -- pun tetap punya ruang napas dari tepi layar (tidak menempel/terpotong).
     local minSize = cfg.MinSize or Vector2.new(400, 250)
     minSize = Vector2.new(
-        math.min(minSize.X, math.max(viewport.X - 20, 220)),
-        math.min(minSize.Y, math.max(viewport.Y - 20, 160))
+        math.min(minSize.X, math.max(viewport.X - 56, 220)),
+        math.min(minSize.Y, math.max(viewport.Y - 56, 160))
     )
 
-    -- ukuran default responsif mobile jika tidak ditentukan.
-    -- v2.2.2: default PC diringkas 540x350 (dulu 620x430) — tidak lagi
-    -- "kegedean" saat pertama execute; tetap bisa di-resize/minimize.
-    local size = cfg.Size or (IsMobile() and UDim2.new(0.92, 0, 0.62, 0) or UDim2.new(0, 540, 0, 350))
+    -- v2.2.3: ukuran default RADA PERSEGU + DIJAMIN MUAT di layar apa pun
+    -- perangkatnya — dihitung murni dari DIMENSI viewport aktual, bukan lagi
+    -- dari deteksi MouseEnabled (sebagian Android/emulator/executor
+    -- melaporkan MouseEnabled = true walau perangkat tanpa mouse → dulu
+    -- salah mengambil default PC 540px yang LEBIH LEBAR dari layar HP →
+    -- window tampak "langsung terpotong" di kedua sisi padahal belum
+    -- diseret ke tepi layar).
+    --   • lebar  : terkecil dari 440px / 86% lebar layar / 62% tinggi layar
+    --   • tinggi : terkecil dari 390px / 62% tinggi layar / 1.15x lebar
+    --   → rasio akhir selalu 1:1 s.d. 1.15:1 (rada persegu) DAN selalu
+    --     menyisakan margin terlihat di semua sisi layar.
+    local size = cfg.Size
+    if not size then
+        local w = math.min(440, viewport.X * 0.86, viewport.Y * 0.62)
+        local h = math.min(390, viewport.Y * 0.62, w * 1.15)
+        w = math.min(w, viewport.X - 24)
+        h = math.min(h, viewport.Y - 24)
+        size = UDim2.fromOffset(math.floor(w + 0.5), math.floor(h + 0.5))
+    end
 
     -- ── Frame utama ──
     local frame = Create("Frame", {
@@ -3727,7 +3775,10 @@ function WindowClass:SetTitle(text)
     self.LogoText.Text = tostring(text or "ThorUi")
 end
 
---  Sidebar responsif: window sempit (< 520px) → icon-only (lebar 48px).
+--  Sidebar responsif: window sempit (< 430px) → icon-only (lebar 48px).
+--  v2.2.3: ambang diturunkan 520 → 430 — default persegu 440px tetap
+--  menampilkan NAMA tab; hanya layar benar-benar sempit (hp portrait)
+--  yang otomatis icon-only.
 function WindowClass:_updateResponsive()
     -- saat collapsed, ukur "lebar logis" (ukuran sebelum minimize) supaya
     -- sidebar tidak ikut menyempit hanya karena window sedang dikecilkan;
@@ -3739,7 +3790,7 @@ function WindowClass:_updateResponsive()
         local vp = GetViewport()
         width = self.Frame.Size.X.Scale * vp.X + self.Frame.Size.X.Offset
     end
-    local narrow = width < 520
+    local narrow = width < 430
     if narrow == self._narrow then
         return
     end
@@ -4067,7 +4118,7 @@ return ThorUi
 
         local Window = ThorUi:CreateWindow({
                 Title   = "ThorUi ⚡",
-                Size    = UDim2.new(0, 540, 0, 350),  -- v2.2.2: default ringkas; kosongkan agar otomatis responsif mobile
+                Size    = UDim2.new(0, 440, 0, 390),  -- v2.2.3: default rada persegu; kosongkan agar otomatis responsif + SELALU muat di layar
                 MinSize = Vector2.new(400, 250),       -- batas minimal saat resize
                 Keybind = Enum.KeyCode.RightControl,  -- toggle buka/tutup UI (PC)
                 Splash = true,                        -- splash screen (default: window pertama)
