@@ -1,12 +1,12 @@
 # ⚡ ThorUi v2 — Roblox UI Library bertema Dewa Petir
 
 > UI library untuk Roblox dengan tema **Thor / Dewa Petir**: gelap, snappy, dan elektrik.
-> **v2.1.4: FIX seluruh warna gradien kotor — UIGradient ternyata TINT (mengalikan warna background, bukan menimpanya): sidebar & header sempat nyaris HITAM dan fill slider tampak HIJAU; kini semua gradien tampil murni sesuai tema** + v2.1.3 fix error fatal `'Value' is not a valid member of UDim` + teks keterangan tidak ketimpa + Description ala Wind UI di semua elemen — sidebar tab, search bar, splash screen, ColorPicker, Confirm dialog.
+> **v2.1.5: FIX "kotak abu-abu" di belakang nilai slider ("124 spd") & pilihan dropdown ("Mjolnir") — TextLabel tanpa `BackgroundTransparency` ternyata merender background default abu-abu Roblox; kini semua label nilai transparan, teks tema langsung di atas kartu navy** + v2.1.4 fix seluruh warna gradien kotor (UIGradient = TINT) + v2.1.3 fix error fatal `'Value' is not a valid member of UDim` + teks keterangan tidak ketimpa + Description ala Wind UI di semua elemen — sidebar tab, search bar, splash screen, ColorPicker, Confirm dialog.
 > Dukungan penuh **PC & Mobile** · Window *draggable* & *resizable* · **100% murni script** (tanpa Asset ID eksternal) · **Anti memory-leak**
 
 | | |
 |---|---|
-| **Versi** | 2.1.4 |
+| **Versi** | 2.1.5 |
 | **Tipe** | ModuleScript tunggal (Luau), tanpa dependensi |
 | **Platform** | PC (Mouse + Keyboard) & Mobile (Touch) |
 | **Aset** | `Instance.new` / `UICorner` / `UIStroke` / `UIGradient` saja — anti asset takedown |
@@ -51,6 +51,12 @@
 - **FIX ColorPicker slider hue via sentuhan** — dulu slider hue hanya bisa digeser mouse; kini jari juga bisa (filter gesture source-lock).
 - **Gesture source-lock menyeluruh** — drag window, resize, slider, dan ikon ⚡ mengunci sumber input saat gesture dimulai: di perangkat *hybrid* (PC layar sentuh / tablet + mouse) posisi mouse yang menetap tidak lagi bikin UI meloncat; jari kedua tidak mengganggu drag yang sedang berjalan.
 - **Sentuhan mobile makin nyaman** — nilai slider tidak terpotong (`TextTruncate`), baris opsi dropdown 24→28px, kartu Confirm dialog auto-fit di layar sempit.
+
+### Perbaikan di v2.1.5 (hapus "kotak abu-abu" nilai slider & dropdown)
+
+- **FIX kotak abu-abu di belakang nilai elemen (dari screenshot user: "tulisan 124 spd di dalam kotak abu abu... tulisan Mjolnir juga di dalam kotak abu abu")** — 5 `TextLabel` nilai (nilai slider "124 spd", pilihan dropdown "Mjolnir", panah dropdown "▾", keybind, dan kode HEX ColorPicker) tidak pernah diberi `BackgroundTransparency`, sehingga Roblox merender **background default abu-abu `RGB(163,162,165)`** di belakang teksnya — tampak seperti teks "dikotaki" abu-abu. Kini kelima label **transparan total**: teks emas/biru tema langsung di atas kartu navy, tanpa kotak apa pun.
+- **Helper `Create` anti-kotak-abu permanen** — `TextLabel` yang dibuat tanpa `BackgroundTransparency` dan tanpa `BackgroundColor3` eksplisit kini **otomatis transparan** di helper pembuat instance, sehingga kelas bug "kotak abu-abu" ini tidak akan muncul lagi di elemen manapun yang akan datang (audit menyeluruh: tidak ada satu pun `TextLabel` ber-background di seluruh kodebase; swatch warna ColorPicker adalah `Frame` yang di-set `BackgroundColor3` dinamis, jadi tetap menampilkan warna terpilih).
+- **Audit menyeluruh** — 31 instance tanpa transparansi eksplisit diperiksa: selain 5 label nilai di atas, sisanya adalah `Frame`/`TextButton`/`TextBox` dengan `BackgroundColor3` tema yang memang disengaja (track slider, pill toggle, swatch, dsb.) — tidak ada kotak abu tersisa.
 
 ### Perbaikan di v2.1.4 (fix warna gradien kotor — akar "warna abu-abu")
 

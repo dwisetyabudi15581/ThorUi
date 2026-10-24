@@ -1,8 +1,8 @@
 --════════════════════════════════════════════════════════════════════════════
---  ⚡  ThorUi v2.1.4 — Roblox UI Library bertema Dewa Petir (Thor / Petir)
+--  ⚡  ThorUi v2.1.5 — Roblox UI Library bertema Dewa Petir (Thor / Petir)
 --      Layout & UX terinspirasi Wind UI · tema tetap 100% Thor ⚡
 --  ──────────────────────────────────────────────────────────────────────────
---  Versi     : 2.1.4 (ModuleScript tunggal, tanpa dependensi eksternal)
+--  Versi     : 2.1.5 (ModuleScript tunggal, tanpa dependensi eksternal)
 --  Platform  : PC & Mobile — draggable, resizable, cross-platform
 --
 --  BARU DI v2.0.0 (gaya Wind UI)
@@ -80,6 +80,21 @@
 --  • FIX tombol Confirm   : gradien biru→emas (berefek kotor sama)
 --                         diganti solid Electric Blue + teks putih.
 --
+--  FIX DI v2.1.5 (dari screenshot user: nilai slider "124 spd" & pilihan
+--                  dropdown "Mjolnir" tampak DI DALAM KOTAK ABU-ABU)
+--  • FIX kotak abu-abu   : TextLabel nilai — slider ("124 spd"), dropdown
+--                         ("Mjolnir ▾"), keybind, hex ColorPicker — tidak
+--                         diberi BackgroundTransparency, sehingga Roblox
+--                         merender background DEFAULT abu-abu
+--                         RGB(163,162,165) di belakang teksnya. Kini SEMUA
+--                         label nilai TRANSPARAN: teks emas/biru tema
+--                         langsung di atas kartu navy — tanpa kotak.
+--  • Helper Create        : kini mencegah kotak abu serupa di masa depan —
+--                         TextLabel tanpa background eksplisit otomatis
+--                         transparan (audit: tidak ada TextLabel
+--                         ber-background di seluruh kodebase; swatch warna
+--                         ColorPicker adalah Frame, bukan TextLabel).
+--
 --  FITUR LANJUTAN
 --  • Tema Lightning & Thunder : Midnight Blue + Electric Blue / Lightning Gold
 --  • Animasi snappy ala kilat : TweenService (Back / Quart / Quad, cepat)
@@ -136,7 +151,7 @@ local LocalPlayer = Players.LocalPlayer
 
 --// ─────────────────────────────── Library ──────────────────────────────────
 local ThorUi = {
-    Version = "2.1.4",
+    Version = "2.1.5",
 }
 
 --// ──────────────────────────────── Tema ────────────────────────────────────
@@ -212,6 +227,17 @@ end
 local function Create(className, props)
     local inst = Instance.new(className)
     if props then
+        -- FIX v2.1.5: TextLabel tanpa BackgroundTransparency & tanpa
+        -- BackgroundColor3 eksplisit merender KOTAK ABU-ABU default Roblox
+        -- (RGB 163,162,165) di belakang teksnya — inilah "kotak abu abu"
+        -- yang menimpa nilai slider "124 spd" & pilihan dropdown "Mjolnir".
+        -- Default-kan transparan (audit: TIDAK ada TextLabel ber-background
+        -- di kodebase; swatch warna ColorPicker adalah Frame, bukan TextLabel).
+        if className == "TextLabel"
+            and props.BackgroundTransparency == nil
+            and props.BackgroundColor3 == nil then
+            inst.BackgroundTransparency = 1
+        end
         for key, value in pairs(props) do
             if key ~= "Parent" and value ~= nil then
                 inst[key] = value
@@ -1541,6 +1567,7 @@ function TabClass:AddSlider(cfg)
         Parent = row1,
     })
     local valueLabel = Create("TextLabel", {
+        BackgroundTransparency = 1, -- FIX v2.1.5: hilangkan kotak abu-abu di belakang "124 spd"
         AnchorPoint = Vector2.new(1, 0),
         Position = UDim2.new(1, 0, 0, 0),
         Size = UDim2.new(0, 90, 1, 0),
@@ -1744,6 +1771,7 @@ function TabClass:AddDropdown(cfg)
         Parent = header,
     })
     local selectLabel = Create("TextLabel", {
+        BackgroundTransparency = 1, -- FIX v2.1.5: hilangkan kotak abu-abu di belakang "Mjolnir"
         AnchorPoint = Vector2.new(1, 0),
         Position = UDim2.new(1, -14, 0, 0),
         Size = UDim2.new(0, 120, 1, 0),
@@ -1756,6 +1784,7 @@ function TabClass:AddDropdown(cfg)
         Parent = header,
     })
     local arrow = Create("TextLabel", {
+        BackgroundTransparency = 1, -- FIX v2.1.5: tanpa ini panah "▾" juga berkotak abu
         AnchorPoint = Vector2.new(1, 0),
         Position = UDim2.new(1, 0, 0, 0),
         Size = UDim2.new(0, 12, 1, 0),
@@ -2072,6 +2101,7 @@ function TabClass:AddKeybind(cfg)
         Parent = row,
     })
     local bindLabel = Create("TextLabel", {
+        BackgroundTransparency = 1, -- FIX v2.1.5: keybind juga tanpa kotak abu
         AnchorPoint = Vector2.new(1, 0),
         Position = UDim2.new(1, 0, 0, 0),
         Size = UDim2.new(0, 135, 1, 0),
@@ -2221,6 +2251,7 @@ function TabClass:AddColorPicker(cfg)
         Parent = header,
     })
     local hexLabel = Create("TextLabel", {
+        BackgroundTransparency = 1, -- FIX v2.1.5: hex code tanpa kotak abu
         AnchorPoint = Vector2.new(1, 0.5),
         Position = UDim2.new(1, -36, 0.5, 0),
         Size = UDim2.new(0, 76, 1, 0),

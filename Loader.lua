@@ -285,7 +285,13 @@ Tab3:AddParagraph({
                 .. "    HIJAU (emas tak pernah muncul). Kini semua frame ber-gradien\n"
                 .. "    berlatar putih → warna tema tampil murni: sidebar & header\n"
                 .. "    navy, fill slider biru listrik menyala + knob stroke EMAS,\n"
-                .. "    garis petir & indikator tab emas→biru, tombol ⚡ terlihat.",
+                .. "    garis petir & indikator tab emas→biru, tombol ⚡ terlihat.\n"
+                .. "11) v2.1.5: KOTAK ABU-ABU DIHAPUS — nilai slider ('124 spd'),\n"
+                .. "    pilihan dropdown ('Mjolnir'), panah ▾, keybind, dan hex\n"
+                .. "    ColorPicker ternyata berkotak abu-abu default Roblox\n"
+                .. "    (RGB 163,162,165) karena label-nya tak diberi\n"
+                .. "    BackgroundTransparency. Kini SEMUA label nilai TRANSPARAN\n"
+                .. "    — teks emas/biru tema langsung di atas kartu navy.",
 })
 
 Tab3:AddSection({ Name = "INFO" })
