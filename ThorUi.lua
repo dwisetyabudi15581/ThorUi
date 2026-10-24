@@ -121,7 +121,7 @@
 --                  tambahkan minimize menu biar lebih rapi")
 --  • Menu minimizable    : judul section kini bisa DIKLIK untuk menutup /
 --                         membuka SEMUA fitur di dalamnya (sampai section
---                         berikutnya) — chevron ▾ berputar jadi ▸ sebagai
+--                         berikutnya) — panah lipat emas berputar sebagai
 --                         penanda; judul section lain tetap terlihat
 --  • AddSection(cfg)     : Collapsed = true → menu dibuat langsung terlipat
 --  • API programatik     : Section:SetCollapsed(bool) · :Toggle() ·
@@ -132,11 +132,33 @@
 --  • Hemat performa      : lipatan diterapkan TANPA tween per elemen (satu
 --                         pass visibility) — setia pada optimasi v2.2.0
 --
+--  BARU DI v2.2.2 (permintaan user: "AddSection jangan kotak — ganti anak
+--                  panah; drag UI jangan ada batas; semua section tutup saat
+--                  pertama execute; UI jangan terlalu gede")
+--  • Panah DIGAMBAR     : chevron section & panah dropdown kini DIGAMBAR
+--                         dari 2 batang miring (geometri murni, tanpa
+--                         font). Glyph unicode "▾" ternyata dirender Roblox
+--                         sebagai KOTAK kosong (tofu) di sebagian perangkat
+--                         — itulah "kotak" di judul section. Panah kini
+--                         DIJAMIN tampil sebagai panah di semua perangkat.
+--  • Section terlipat    : SEMUA section MULAI TERLIPAT saat pertama
+--                         execute — daftar fitur langsung rapi; klik judul
+--                         untuk membuka. Collapsed = false di AddSection
+--                         untuk mulai terbuka (default kini TERLIPAT).
+--  • Drag TANPA BATAS    : window bisa digeser bebas keluar layar ke kiri /
+--                         kanan / atas / bawah — NOL clamp. Tidak akan
+--                         hilang: saat dimunculkan lagi (tombol ⚡ /
+--                         keybind) otomatis ditarik balik ke dalam layar.
+--  • Default ringkas     : ukuran default window kini 540 x 350 (dulu
+--                         620 x 430) — tampil langsung proporsional,
+--                         tetap bisa di-resize / minimize sesuka hati.
+--
 --  FITUR LANJUTAN
 --  • Tema Lightning & Thunder : Midnight Blue + Electric Blue / Lightning Gold
 --  • Animasi snappy ala kilat : TweenService (Back / Quart / Quad, cepat)
 --  • Glow sederhana           : UIGradient + layer transparan + stroke neon
---  • Window draggable         : Mouse & Touch via UserInputService
+--  • Window draggable         : Mouse & Touch via UserInputService — BEBAS
+--                               tanpa batas layar (v2.2.2; pulih otomatis di Show())
 --  • Window resizable         : drag-handle di sudut kanan-bawah window
 --  • UISizeConstraint         : ukuran minimal (default 400 x 250)
 --  • Floating toggle ⚡        : bisa digeser BEBAS ke mana pun (di-clamp ke layar)
@@ -167,7 +189,8 @@
 --  Tab:AddTextInput({Name, Text, Placeholder, ClearOnFocus, Callback(text, enter)})
 --  Tab:AddKeybind({Name, Default, Callback})             :SetKey(enum) / :Get()
 --  Tab:AddColorPicker({Name, Default, Callback})          :Set(Color3) / :Get()
---  Tab:AddSection({Name, Description, Collapsed})  → Section (menu)
+--  Tab:AddSection({Name, Description, Collapsed})   → Section (menu)
+--     Collapsed default = true (v2.2.2) · false = mulai terbuka
 --     Section:SetCollapsed(bool)  Section:Toggle()  Section:IsCollapsed()
 --  Tab:AddLabel({Text})   Tab:AddParagraph({Title, Text})
 --  Element:Set(...)         Element:Get()          Element:Remove()
@@ -190,7 +213,7 @@ local LocalPlayer = Players.LocalPlayer
 
 --// ─────────────────────────────── Library ──────────────────────────────────
 local ThorUi = {
-    Version = "2.2.1",
+    Version = "2.2.2",
 }
 
 --// ──────────────────────────────── Tema ────────────────────────────────────
@@ -340,6 +363,44 @@ local function Gradient(parent, colorA, colorB, rotation, transparency)
         props.Transparency = transparency
     end
     return Create("UIGradient", props)
+end
+
+--  v2.2.2: Panah chevron DIGAMBAR, bukan glyph teks. Glyph unicode "▾"
+--  (U+25BE) tidak tersedia di font Roblox (Gotham) sehingga dirender
+--  sebagai KOTAK kosong (tofu) di sebagian perangkat — itulah "kotak"
+--  yang user lihat di judul section. Dua batang miring murni geometri
+--  (tanpa font / tanpa Asset ID) = panah yang DIJAMIN tampil di semua
+--  perangkat. Rotasi container: 0 = panah bawah (terbuka) ·
+--  -90 = panah kanan (terlipat). Warna via BackgroundColor3 kedua batang.
+local function ChevronIcon(parent, props)
+    props = props or {}
+    local px = props.Size or 12
+    local center = px * 0.5
+    local arm = math.max(6, px * 0.66) -- panjang batang
+    local half = arm * 0.3536         -- 1/2 proyeksi diagonal batang
+    local color = props.Color or Theme.AccentGold
+    local box = Create("Frame", {
+        BackgroundTransparency = 1,
+        AnchorPoint = props.AnchorPoint,
+        Position = props.Position,
+        Size = UDim2.new(0, px, 0, px),
+        Rotation = props.Rotation or 0,
+        Parent = parent,
+    })
+    local function armFrame(offsetX, rot)
+        return Create("Frame", {
+            BackgroundColor3 = color,
+            BorderSizePixel = 0,
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Position = UDim2.new(0, math.floor(center + offsetX + 0.5), 0.5, 0),
+            Size = UDim2.new(0, math.floor(arm + 0.5), 0, 2),
+            Rotation = rot,
+            Parent = box,
+        })
+    end
+    local b1 = armFrame(-half, 45)  -- batang kiri ↘ (ujung bertemu di puncak)
+    local b2 = armFrame(half, -45)  -- batang kanan ↗
+    return box, b1, b2
 end
 
 --  Buat & mainkan tween langsung; otomatis masuk garbage table.
@@ -1953,16 +2014,13 @@ function TabClass:AddDropdown(cfg)
         TextTruncate = Enum.TextTruncate.AtEnd,
         Parent = header,
     })
-    local arrow = Create("TextLabel", {
-        BackgroundTransparency = 1, -- FIX v2.1.5: tanpa ini panah "▾" juga berkotak abu
-        AnchorPoint = Vector2.new(1, 0),
-        Position = UDim2.new(1, 0, 0, 0),
-        Size = UDim2.new(0, 12, 1, 0),
-        Text = "▾",
-        Font = Theme.FontMain,
-        TextSize = 12,
-        TextColor3 = Theme.TextDim,
-        Parent = header,
+    -- v2.2.2: panah DIGAMBAR (2 batang miring) — glyph "▾" dirender Roblox
+    -- sebagai KOTAK kosong (tofu) di sebagian perangkat (lihat ChevronIcon)
+    local arrow, arrowA, arrowB = ChevronIcon(header, {
+        AnchorPoint = Vector2.new(1, 0.5),
+        Position = UDim2.new(1, -1, 0.5, 0),
+        Size = 10,
+        Color = Theme.TextDim,
     })
 
     -- keterangan kecil di bawah judul
@@ -2025,7 +2083,9 @@ function TabClass:AddDropdown(cfg)
     local function setExpanded(v)
         expanded = v
         holder.Visible = v
-        Tween(reg, arrow, TI_HOVER, { TextColor3 = v and Theme.Accent or Theme.TextDim })
+        local c = v and Theme.Accent or Theme.TextDim
+        Tween(reg, arrowA, TI_HOVER, { BackgroundColor3 = c })
+        Tween(reg, arrowB, TI_HOVER, { BackgroundColor3 = c })
     end
 
     for _, value in ipairs(cfg.Values or {}) do
@@ -2695,10 +2755,13 @@ function TabClass:AddColorPicker(cfg)
 end
 
 --// ─────────────────────────── Elemen: SECTION ──────────────────────────────
---  v2.2.1: MENU BISA DI-MINIMIZE — klik judul section untuk menutup/membuka
---  semua fitur di dalamnya (sampai section berikutnya). Chevron ▾ berputar
---  jadi ▸ sebagai penanda. Elemen yang dibuat SETELAH AddSection otomatis
---  menjadi anggota menu tersebut (via _own / _track).
+--  MENU BISA DI-MINIMIZE — klik judul section untuk menutup/membuka semua
+--  fitur di dalamnya (sampai section berikutnya). Panah lipat DIGAMBAR
+--  (bukan glyph — v2.2.2) berputar sebagai penanda. Elemen yang dibuat
+--  SETELAH AddSection otomatis menjadi anggota menu tersebut (via
+--  _own / _track).
+--  v2.2.2: section MULAI TERLIPAT saat pertama execute (biar rapi) —
+--  beri Collapsed = false untuk membuatnya dalam keadaan TERBUKA.
 function TabClass:AddSection(cfg)
     cfg = cfg or {}
     local reg = Registry.new()
@@ -2738,17 +2801,14 @@ function TabClass:AddSection(cfg)
         TextTruncate = Enum.TextTruncate.AtEnd,
         Parent = row,
     })
-    -- chevron penanda lipatan: ▾ (terbuka) ↔ ▸ (termiminize, rotasi -90°)
-    local chevron = Create("TextLabel", {
-        BackgroundTransparency = 1,
+    -- v2.2.2: panah penanda lipatan DIGAMBAR (2 batang miring emas) —
+    -- glyph "▾" tampil sebagai KOTAK kosong (tofu) di sebagian perangkat.
+    -- Rotasi ikon: 0 = panah bawah (terbuka) ↔ -90 = panah kanan (terlipat)
+    local chevron, chevA, chevB = ChevronIcon(row, {
         AnchorPoint = Vector2.new(1, 0.5),
-        Position = UDim2.new(1, -2, 0.5, 0),
-        Size = UDim2.new(0, 14, 1, 0),
-        Text = "▾",
-        Font = Theme.FontBold,
-        TextSize = 12,
-        TextColor3 = Theme.AccentGold,
-        Parent = row,
+        Position = UDim2.new(1, -3, 0.5, 0),
+        Size = 12,
+        Color = Theme.AccentGold,
     })
 
     -- keterangan kecil di bawah judul section
@@ -2772,7 +2832,7 @@ function TabClass:AddSection(cfg)
         Instance = holder,
         Registry = reg,
         Members = {}, -- elemen yang dibuat setelah section ini
-        Collapsed = false,
+        Collapsed = true, -- v2.2.2: TERLIPAT adalah default awal
     }
 
     -- Terapkan lipatan: sembunyikan/tampilkan semua anggota dalam SATU pass
@@ -2820,11 +2880,13 @@ function TabClass:AddSection(cfg)
     if HOVER_FOR_MOUSE then
         reg:Connect(row.MouseEnter, function()
             Tween(reg, title, TI_HOVER, { TextColor3 = Theme.Text })
-            Tween(reg, chevron, TI_HOVER, { TextColor3 = Theme.Text })
+            Tween(reg, chevA, TI_HOVER, { BackgroundColor3 = Theme.Text })
+            Tween(reg, chevB, TI_HOVER, { BackgroundColor3 = Theme.Text })
         end)
         reg:Connect(row.MouseLeave, function()
             Tween(reg, title, TI_HOVER, { TextColor3 = Theme.AccentGold })
-            Tween(reg, chevron, TI_HOVER, { TextColor3 = Theme.AccentGold })
+            Tween(reg, chevA, TI_HOVER, { BackgroundColor3 = Theme.AccentGold })
+            Tween(reg, chevB, TI_HOVER, { BackgroundColor3 = Theme.AccentGold })
         end)
     end
 
@@ -2846,8 +2908,13 @@ function TabClass:AddSection(cfg)
     self._currentSection = el
     table.insert(self.Sections, el)
 
-    -- cfg.Collapsed = true → menu dibuat langsung terlipat
-    if cfg.Collapsed then
+    -- v2.2.2: SEMUA section MULAI TERLIPAT saat pertama execute (permintaan:
+    -- "semua section di tutup biar rapi"). cfg.Collapsed = false → menu
+    -- dibuat dalam keadaan TERBUKA; anggota yang dibuat kemudian tetap
+    -- terdaftar ke menu ini dan mengikuti status lipatnya.
+    if cfg.Collapsed == false then
+        el.Collapsed = false
+    else
         el.Collapsed = true
         chevron.Rotation = -90
     end
@@ -2984,8 +3051,10 @@ function ThorUi:CreateWindow(cfg)
         math.min(minSize.Y, math.max(viewport.Y - 20, 160))
     )
 
-    -- ukuran default responsif mobile jika tidak ditentukan
-    local size = cfg.Size or (IsMobile() and UDim2.new(0.92, 0, 0.62, 0) or UDim2.new(0, 620, 0, 430))
+    -- ukuran default responsif mobile jika tidak ditentukan.
+    -- v2.2.2: default PC diringkas 540x350 (dulu 620x430) — tidak lagi
+    -- "kegedean" saat pertama execute; tetap bisa di-resize/minimize.
+    local size = cfg.Size or (IsMobile() and UDim2.new(0.92, 0, 0.62, 0) or UDim2.new(0, 540, 0, 350))
 
     -- ── Frame utama ──
     local frame = Create("Frame", {
@@ -3407,23 +3476,15 @@ function ThorUi:CreateWindow(cfg)
     reg:Connect(UserInputService.InputChanged, function(input)
         if dragging and gestureInput(dragInput, input) then
             local delta = input.Position - dragStart
-            -- clamp: minimal 56px sisi window & 30px baris judul tetap
-            -- terlihat — window tidak bisa "hilang" ke luar layar
             local vp = GetViewport()
-            local size = frame.AbsoluteSize
-            local center = Vector2.new(
-                startPos.X.Scale * vp.X + startPos.X.Offset + delta.X,
-                startPos.Y.Scale * vp.Y + startPos.Y.Offset + delta.Y
+            -- v2.2.2: drag SEPENUHNYA BEBAS — TANPA BATAS (permintaan user:
+            -- "tidak ada batas ketika geser ke kiri kanan"). Window boleh
+            -- dibawa keluar layar ke kiri/kanan/atas/bawah; tidak akan
+            -- hilang selamanya — Window:Show() menariknya balik ke layar.
+            frame.Position = UDim2.new(
+                0, startPos.X.Scale * vp.X + startPos.X.Offset + delta.X,
+                0, startPos.Y.Scale * vp.Y + startPos.Y.Offset + delta.Y
             )
-            local loX = 56 - size.X * 0.5
-            local hiX = math.max(loX, vp.X - 56 + size.X * 0.5)
-            local loY = 30 - size.Y * 0.5
-            local hiY = math.max(loY, vp.Y - 30 + size.Y * 0.5)
-            center = Vector2.new(
-                math.clamp(center.X, loX, hiX),
-                math.clamp(center.Y, loY, hiY)
-            )
-            frame.Position = UDim2.new(0, center.X, 0, center.Y)
         end
     end)
     reg:Connect(UserInputService.InputEnded, function(input)
@@ -3563,7 +3624,28 @@ function WindowClass:Show()
     if self.Frame.Visible and (self.UiScale.Scale or 1) >= 0.99 then
         return
     end
-    self.Frame.Visible = true
+    -- v2.2.2: window boleh digeser BEBAS keluar layar (drag tanpa batas).
+    -- Saat DIMUNCULKAN kembali (tombol ⚡ / keybind), tarik balik ke dalam
+    -- layar — minimal 56px sisi kiri/kanan & 30px baris judul terlihat —
+    -- agar window tidak "hilang" selamanya.
+    local f = self.Frame
+    local size = f.AbsoluteSize
+    if size.X > 0 and size.Y > 0 then
+        local vp = GetViewport()
+        local center = Vector2.new(
+            f.Position.X.Scale * vp.X + f.Position.X.Offset,
+            f.Position.Y.Scale * vp.Y + f.Position.Y.Offset
+        )
+        local loX = 56 - size.X * 0.5
+        local hiX = math.max(loX, vp.X - 56 + size.X * 0.5)
+        local loY = 30 - size.Y * 0.5
+        local hiY = math.max(loY, vp.Y - 30 + size.Y * 0.5)
+        f.Position = UDim2.new(
+            0, math.clamp(center.X, loX, hiX),
+            0, math.clamp(center.Y, loY, hiY)
+        )
+    end
+    f.Visible = true
     self.UiScale.Scale = 0.75
     Tween(self.Registry, self.UiScale, TI_STRIKE, { Scale = 1 })
 end
@@ -3985,7 +4067,7 @@ return ThorUi
 
         local Window = ThorUi:CreateWindow({
                 Title   = "ThorUi ⚡",
-                Size    = UDim2.new(0, 620, 0, 430),  -- kosongkan agar otomatis responsif mobile
+                Size    = UDim2.new(0, 540, 0, 350),  -- v2.2.2: default ringkas; kosongkan agar otomatis responsif mobile
                 MinSize = Vector2.new(400, 250),       -- batas minimal saat resize
                 Keybind = Enum.KeyCode.RightControl,  -- toggle buka/tutup UI (PC)
                 Splash = true,                        -- splash screen (default: window pertama)
@@ -3995,6 +4077,9 @@ return ThorUi
         local Tab  = Window:CreateTab({ Name = "Main",  Icon = "⚡" })
         local Tab2 = Window:CreateTab({ Name = "Info",  Icon = "🌩" })
 
+        -- v2.2.2: SEMUA section (menu) MULAI TERLIPAT saat pertama execute
+        -- biar daftar rapi — klik judulnya untuk membuka; atau beri
+        -- Collapsed = false agar menu ini mulai TERBUKA:
         Tab:AddSection({ Name = "MENU UTAMA" })
 
         Tab:AddButton({
@@ -4082,10 +4167,11 @@ return ThorUi
         })
 
         -- v2.2.1: MENU (section) BISA DI-MINIMIZE — klik judulnya untuk
-        -- melipat semua fitur di dalamnya (chevron ▾ ↔ ▸):
+        -- melipat semua fitur di dalamnya (panah lipat berputar).
+        -- v2.2.2: TERLIPAT kini default — Collapsed = false untuk terbuka:
         local menuLanjutan = Tab:AddSection({
                 Name = "MENU LANJUTAN (klik untuk minimize)",
-                Collapsed = true, -- dibuat dalam keadaan terlipat
+                Collapsed = true, -- eksplisit (sama dengan default v2.2.2)
         })
         Tab:AddLabel({ Text = "Menu ini dibuat TERLIPAT — klik judulnya untuk membuka." })
 

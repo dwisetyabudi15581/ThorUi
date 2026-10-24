@@ -1,12 +1,12 @@
 # ⚡ ThorUi v2 — Roblox UI Library bertema Dewa Petir
 
 > UI library untuk Roblox dengan tema **Thor / Dewa Petir**: gelap, snappy, dan elektrik.
-> **v2.2.1: MENU (SECTION) BISA DI-MINIMIZE — klik judulnya untuk melipat semua fitur di dalamnya (`Collapsed = true`, `Section:Toggle()` / `:SetCollapsed()` / `:IsCollapsed()`)** + v2.2.0: OPTIMASI PERFORMA — UI dibikin seringan mungkin: pengukur teks ber-cache (`GetTextSize` hanya saat teks/lebar benar-benar berubah), re-ukur digabung maksimal 1 pass per frame, tween otomatis keluar dari registry saat selesai (dulu menumpuk ribuan entri mati), hover card hanya di perangkat bermouse, search debounce 0.1 detik + rebranding total (desain 100% original ThorUi)** + v2.1.5 hapus "kotak abu-abu" di belakang nilai slider/dropdown + v2.1.4 fix gradien kotor (UIGradient = TINT) + v2.1.3 fix error fatal `'Value' is not a valid member of UDim'` — sidebar tab, search bar, splash screen, ColorPicker, Confirm dialog.
+> **v2.2.2: PANAH ASLI (DIGAMBAR — fix "kotak" tofu di judul section) + SEMUA SECTION MULAI TERLIPAT saat pertama execute + DRAG WINDOW BEBAS TANPA BATAS LAYAR + ukuran default ringkas 540×350** + v2.2.1: MENU (SECTION) BISA DI-MINIMIZE — klik judulnya untuk melipat semua fitur di dalamnya (`Section:Toggle()` / `:SetCollapsed()` / `:IsCollapsed()`)** + v2.2.0: OPTIMASI PERFORMA — UI dibikin seringan mungkin: pengukur teks ber-cache (`GetTextSize` hanya saat teks/lebar benar-benar berubah), re-ukur digabung maksimal 1 pass per frame, tween otomatis keluar dari registry saat selesai (dulu menumpuk ribuan entri mati), hover card hanya di perangkat bermouse, search debounce 0.1 detik + rebranding total (desain 100% original ThorUi)** + v2.1.5 hapus "kotak abu-abu" di belakang nilai slider/dropdown + v2.1.4 fix gradien kotor (UIGradient = TINT) + v2.1.3 fix error fatal `'Value' is not a valid member of UDim'` — sidebar tab, search bar, splash screen, ColorPicker, Confirm dialog.
 > Dukungan penuh **PC & Mobile** · Window *draggable* & *resizable* · **100% murni script** (tanpa Asset ID eksternal) · **Anti memory-leak**
 
 | | |
 |---|---|
-| **Versi** | 2.2.1 |
+| **Versi** | 2.2.2 |
 | **Tipe** | ModuleScript tunggal (Luau), tanpa dependensi |
 | **Platform** | PC (Mouse + Keyboard) & Mobile (Touch) |
 | **Aset** | `Instance.new` / `UICorner` / `UIStroke` / `UIGradient` saja — anti asset takedown |
@@ -52,11 +52,18 @@
 - **Gesture source-lock menyeluruh** — drag window, resize, slider, dan ikon ⚡ mengunci sumber input saat gesture dimulai: di perangkat *hybrid* (PC layar sentuh / tablet + mouse) posisi mouse yang menetap tidak lagi bikin UI meloncat; jari kedua tidak mengganggu drag yang sedang berjalan.
 - **Sentuhan mobile makin nyaman** — nilai slider tidak terpotong (`TextTruncate`), baris opsi dropdown 24→28px, kartu Confirm dialog auto-fit di layar sempit.
 
+### Baru di v2.2.2 (dari permintaan: "AddSection jangan kotak — ganti anak panah; drag jangan ada batas; semua section tutup saat pertama execute; UI jangan terlalu gede")
+
+- **Panah ASLI (DIGAMBAR, bukan glyph)** — akar "kotak" di judul section ternyata glyph unicode `▾` (U+25BE) yang **tidak tersedia di font Roblox (Gotham)**, sehingga dirender sebagai **kotak kosong (tofu)** di sebagian perangkat. Panah lipat section & panah dropdown kini **DIGAMBAR dari 2 batang miring** (geometri murni `Instance.new` — tanpa font, tanpa Asset ID): **dijamin tampil sebagai panah di semua perangkat**, tetap beranimasi berputar (0° = terbuka ↔ -90° = terlipat).
+- **Semua section MULAI TERLIPAT** — saat pertama execute, semua menu tampil dalam keadaan TERTUTUP supaya daftar fitur langsung rapi; klik judulnya untuk membuka. Default `Collapsed` kini `true` — beri `Collapsed = false` agar menu tertentu mulai terbuka.
+- **Drag window TANPA BATAS** — window bisa digeser bebas keluar layar (kiri/kanan/atas/bawah — nol clamp; dulu di-clamp minimal 56px terlihat). Tidak akan hilang selamanya: saat window dimunculkan lagi (tombol ⚡ / keybind), posisinya otomatis ditarik balik ke dalam layar.
+- **Ukuran default ringkas** — window PC kini terbuka di **540 × 350 px** (dulu 620 × 430 — "kegedean" di layar kecil). Tetap bisa di-resize / di-minimize / diatur sendiri lewat `Size` & `MinSize`.
+
 ### Baru di v2.2.1 (menu bisa di-minimize — dari permintaan: "di dalam menu ada fitur, tolong tambahkan minimize menu biar lebih rapi")
 
-- **Judul section = tombol lipat** — klik judul menu (mis. "PENGATURAN KARAKTER") untuk menutup/membuka **semua fitur di dalamnya** sekaligus (sampai section berikutnya); chevron `▾` berputar menjadi `▸` sebagai penanda, dan judul section lain tetap terlihat agar navigasi tidak terkunci. Cocok untuk tab dengan banyak fitur — daftar jadi jauh lebih rapi.
+- **Judul section = tombol lipat** — klik judul menu (mis. "PENGATURAN KARAKTER") untuk menutup/membuka **semua fitur di dalamnya** sekaligus (sampai section berikutnya); panah lipat di kanan judul berputar sebagai penanda (sejak v2.2.2 panah DIGAMBAR — bukan glyph font), dan judul section lain tetap terlihat agar navigasi tidak terkunci. Cocok untuk tab dengan banyak fitur — daftar jadi jauh lebih rapi.
 - **Anggota otomatis** — elemen apa pun (Button/Toggle/Slider/Dropdown/TextInput/Keybind/ColorPicker/Label/Paragraph) yang dibuat **setelah** `AddSection` otomatis menjadi anggota menu tersebut; tidak perlu mendaftarkan apa pun secara manual.
-- **Mulai terlipat** — `Tab:AddSection({ Name = "...", Collapsed = true })` membuat menu langsung dalam keadaan tertutup; elemen yang ditambahkan belakangan pun ikut tersembunyi otomatis.
+- **Mulai terlipat** — `Tab:AddSection({ Name = "..." })` kini otomatis mulai TERLIPAT (default `Collapsed = true` sejak v2.2.2); elemen yang ditambahkan belakangan pun ikut tersembunyi otomatis. `Collapsed = false` untuk mulai terbuka.
 - **API programatik** — `Section:SetCollapsed(bool)`, `Section:Toggle()`, `Section:IsCollapsed()`, plus `SetDescription(teks)` seperti elemen lain.
 - **Search-aware** — pencarian **tidak membuka lipatan**: anggota menu yang sedang di-minimize tetap tersembunyi walau cocok dengan kata kunci; judul menu tanpa anggota yang cocok ikut disembunyikan supaya hasil pencarian lebih rapat.
 - **Tetap ringan** — lipatan diterapkan lewat satu pass `Visible` tanpa tween per elemen, hover judul hanya di perangkat bermouse, dan registry section ikut dibersihkan saat `Section:Remove()` / `Tab:Remove()` / `Window:Destroy()` (anti memory-leak).
@@ -146,7 +153,7 @@ local ThorUi = require(ReplicatedStorage:WaitForChild("ThorUi"))
 
 local Window = ThorUi:CreateWindow({
     Title   = "ThorUi ⚡",
-    Size    = UDim2.new(0, 620, 0, 430),   -- kosongkan agar otomatis responsif
+    Size    = UDim2.new(0, 540, 0, 350),   -- v2.2.2: default ringkas; kosongkan agar otomatis responsif
     MinSize = Vector2.new(400, 250),       -- batas minimal saat resize
     Keybind = Enum.KeyCode.RightControl,   -- toggle buka/tutup UI (PC)
 })
@@ -317,10 +324,10 @@ Tab:AddKeybind({
 
 Elemen statis untuk menyusun halaman: judul seksi bergaris, label teks, dan paragraf multi-baris.
 
-**v2.2.1 — Section kini berfungsi sebagai MENU yang bisa di-minimize**: klik judulnya untuk melipat/membuka semua elemen yang dibuat setelahnya (sampai `AddSection` berikutnya). Elemen apa pun yang dibuat setelah `AddSection` otomatis menjadi anggota menu itu.
+**v2.2.1 — Section kini berfungsi sebagai MENU yang bisa di-minimize**: klik judulnya untuk melipat/membuka semua elemen yang dibuat setelahnya (sampai `AddSection` berikutnya). Elemen apa pun yang dibuat setelah `AddSection` otomatis menjadi anggota menu itu. **v2.2.2 — semua section mulai TERLIPAT** (default `Collapsed = true`); beri `Collapsed = false` untuk menu yang ingin mulai terbuka.
 
 ```lua
-local menu = Tab:AddSection({ Name = "PENGATURAN KARAKTER", Collapsed = false })
+local menu = Tab:AddSection({ Name = "PENGATURAN KARAKTER", Collapsed = false }) -- false = mulai TERBUKA (default kini terlipat)
 
 menu:Toggle()              -- lipat/buka menu
 menu:SetCollapsed(true)     -- minimize paksa
@@ -332,7 +339,7 @@ menu:SetDescription("teks keterangan di bawah judul menu")
 |---|---|---|---|
 | `Name` | `string` | `"Section"` | Judul menu (klik untuk minimize). |
 | `Description` | `string` | `nil` | Keterangan kecil di bawah judul. |
-| `Collapsed` | `boolean` | `false` | `true` → menu dibuat langsung terlipat. |
+| `Collapsed` | `boolean` | `true` | `true` (default sejak v2.2.2) → menu dibuat langsung terlipat · `false` → mulai terbuka. |
 
 ---
 
@@ -344,7 +351,7 @@ menu:SetDescription("teks keterangan di bawah judul menu")
 | Resize window | Sentuh & geser handle sudut kanan-bawah | Klik & tarik handle |
 | Toggle UI | Ketuk tombol ⚡ melayang (bisa digeser bebas) | `RightControl` |
 | Semua tombol | `Activated` event — bekerja untuk tap maupun klik | sama |
-| Ukuran window | Default `0.92 × 0.62` skala layar, auto-clamp | Default `580 × 420` px |
+| Ukuran window | Default `0.92 × 0.62` skala layar, auto-clamp | Default `540 × 350` px (v2.2.2, ringkas) |
 
 ---
 

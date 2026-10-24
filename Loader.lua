@@ -71,8 +71,9 @@ local Window = ThorUi:CreateWindow({
 -- ═══ TAB 1: Komponen dasar ═══
 local Tab1 = Window:CreateTab({ Name = "Komponen", Icon = "⚡" })
 
--- v2.2.1: MENU (section) bisa DI-MINIMIZE — klik judulnya untuk melipat
--- semua fitur di dalamnya (chevron ▾ ↔ ▸):
+-- MENU (section) bisa DI-MINIMIZE — klik judulnya untuk melipat semua
+-- fitur di dalamnya. v2.2.2: SEMUA section mulai TERLIPAT biar rapi
+-- saat pertama execute; beri Collapsed = false agar mulai terbuka:
 Tab1:AddSection({ Name = "AKSI & PEMBERITAHUAN" })
 
 Tab1:AddButton({
@@ -262,7 +263,10 @@ local Tab3 = Window:CreateTab({ Name = "Checklist", Icon = "✅" })
 
 Tab3:AddParagraph({
         Title = "Cara Test Window",
-        Text = "1) DRAG title bar dengan mouse/jari.\n"
+        Text = "1) DRAG title bar dengan mouse/jari — kini BEBAS TANPA batas:\n"
+                .. "   window boleh dibawa keluar layar kiri/kanan/atas/bawah!\n"
+                .. "   Jika 'hilang': ketuk tombol ⚡ (window tertutup) lalu ketuk\n"
+                .. "   ⚡ lagi — window otomatis ditarik balik ke dalam layar.\n"
                 .. "2) RESIZE dari handle sudut kanan-bawah (min 400x250).\n"
                 .. "3) Klik tab untuk ganti konten (perhatikan underline kilat).\n"
                 .. "4) PC: tekan RightControl untuk show/hide.\n"
@@ -272,7 +276,10 @@ Tab3:AddParagraph({
                 .. "   untuk membesarkan window kembali.\n"
                 .. "7) v2.2.1: klik JUDUL SECTION (mis. 'PENGATURAN KARAKTER')\n"
                 .. "   untuk MINIMIZE menu — semua fitur di dalamnya terlipat\n"
-                .. "   biar daftar lebih rapi (chevron ▾ ↔ ▸).",
+                .. "   biar daftar lebih rapi (panah di kanan judul berputar).\n"
+                .. "8) v2.2.2: SEMUA section mulai TERLIPAT saat pertama execute;\n"
+                .. "   ukuran default window kini ringkas (540x350); panah lipat\n"
+                .. "   & panah dropdown DIGAMBAR (bukan glyph font).",
 })
 
 Tab3:AddParagraph({
@@ -308,7 +315,7 @@ Tab3:AddParagraph({
                 .. "    navy, fill slider biru listrik menyala + knob stroke EMAS,\n"
                 .. "    garis petir & indikator tab emas→biru, tombol ⚡ terlihat.\n"
                 .. "11) v2.1.5: KOTAK ABU-ABU DIHAPUS — nilai slider ('124 spd'),\n"
-                .. "    pilihan dropdown ('Mjolnir'), panah ▾, keybind, dan hex\n"
+                .. "    pilihan dropdown ('Mjolnir'), panah, keybind, dan hex\n"
                 .. "    ColorPicker ternyata berkotak abu-abu default Roblox\n"
                 .. "    (RGB 163,162,165) karena label-nya tak diberi\n"
                 .. "    BackgroundTransparency. Kini SEMUA label nilai TRANSPARAN\n"
@@ -319,10 +326,16 @@ Tab3:AddParagraph({
                 .. "    perangkat bermouse, search debounce 0.1s. UI jauh lebih\n"
                 .. "    ringan & lancar (anti rendutan).\n"
                 .. "13) v2.2.1: MENU BISA DI-MINIMIZE — klik judul section untuk\n"
-                .. "    melipat semua fitur di dalamnya biar lebih rapi (chevron\n"
-                .. "    ▾ ↔ ▸). AddSection({ Collapsed = true }) untuk mulai\n"
-                .. "    terlipat, atau dari script: Section:Toggle() /\n"
-                .. "    :SetCollapsed(bool) / :IsCollapsed().",
+                .. "    melipat semua fitur di dalamnya biar lebih rapi (panah\n"
+                .. "    di kanan judul berputar). Dari script: Section:Toggle()\n"
+                .. "    / :SetCollapsed(bool) / :IsCollapsed().\n"
+                .. "14) v2.2.2: PANAH ASLI + RAPI + BEBAS — panah section & panah\n"
+                .. "    dropdown kini DIGAMBAR dari 2 batang miring (glyph\n"
+                .. "    unicode lama ternyata tampil KOTAK kosong di sebagian\n"
+                .. "    perangkat — itu 'kotak' yang dulu terlihat); SEMUA\n"
+                .. "    section mulai TERLIPAT biar rapi (Collapsed = false\n"
+                .. "    untuk mulai terbuka); DRAG window bebas TANPA batas\n"
+                .. "    layar; ukuran default window diringkas jadi 540x350.",
 })
 
 Tab3:AddSection({ Name = "INFO" })
@@ -331,7 +344,7 @@ Tab3:AddLabel({ Text = "Repo: github.com/dwisetyabudi15581/ThorUi" })
 Tab3:AddLabel({ Text = "Output lengkap di console (F9): cari [TEST]" })
 
 --// ─── 4. Sinyal sukses ──────────────────────────────────────────────────────
-print("[ThorUi Loader] 🎉 Demo v2 siap! Coba: splash, sidebar tab, search bar, ColorPicker, Confirm, minimize menu (klik judul section).")
+print("[ThorUi Loader] 🎉 Demo v2 siap! Coba: splash, sidebar tab, search bar, ColorPicker, Confirm, minimize menu (klik judul section), drag window bebas tanpa batas, semua section mulai terlipat (rapi!)")
 print("[ThorUi Loader] Ctrl+M = console. RightControl = show/hide UI.")
 
 ThorUi:Notify({

@@ -15,7 +15,7 @@ local ThorUi = require(ReplicatedStorage:WaitForChild("ThorUi"))
 
 local Window = ThorUi:CreateWindow({
         Title = "ThorUi ⚡",
-        Size = UDim2.new(0, 620, 0, 430),  -- kosongkan agar otomatis responsif mobile
+        Size = UDim2.new(0, 540, 0, 350),  -- v2.2.2: default ringkas; kosongkan agar otomatis responsif mobile
         MinSize = Vector2.new(400, 250),   -- batas minimal saat resize
         Keybind = Enum.KeyCode.RightControl, -- toggle buka/tutup UI (PC)
         Splash = true,                      -- splash screen (default: window pertama)
@@ -26,7 +26,7 @@ local Tab = Window:CreateTab({ Name = "Main", Icon = "⚡" })
 local Tab2 = Window:CreateTab({ Name = "Info", Icon = "🌩" })
 
 -- v2.2.1: judul menu (section) bisa DIKLIK untuk minimize/membuka isinya:
-Tab:AddSection({ Name = "MENU UTAMA" })
+Tab:AddSection({ Name = "MENU UTAMA" }) -- v2.2.2: TERLIPAT default; beri Collapsed = false untuk mulai terbuka
 
 Tab:AddButton({
         Name = "Kirim Petir!",
@@ -109,8 +109,9 @@ Tab:AddButton({
         end,
 })
 
--- v2.2.1: menu kedua — Collapsed = true → dibuat langsung TERLIPAT; klik
--- judulnya untuk membuka. Elemen setelah baris ini jadi anggota menu ini.
+-- v2.2.2: TERLIPAT kini DEFAULT semua section — klik judulnya untuk
+-- membuka; Collapsed = false untuk mulai TERBUKA. Elemen setelah
+-- baris ini jadi anggota menu ini.
 local menuLanjutan = Tab:AddSection({ Name = "MENU LANJUTAN", Collapsed = true })
 Tab:AddLabel({ Text = "Menu ini dibuat terlipat — klik judulnya untuk membuka." })
 
