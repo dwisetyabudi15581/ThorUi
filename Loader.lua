@@ -93,6 +93,7 @@ Tab1:AddButton({
 
 local toggleRef = Tab1:AddToggle({
         Name = "Test Toggle",
+        Description = "Keterangan kecil ala Wind UI — muncul di bawah judul.",
         Default = false,
         Callback = function(value)
                 print("[TEST] Toggle =", value)
@@ -102,6 +103,7 @@ local toggleRef = Tab1:AddToggle({
 
 Tab1:AddSlider({
         Name = "WalkSpeed",
+        Description = "Atur kecepatan jalan karakter (16 - 200).",
         Min = 16, Max = 200, Default = 16,
         Increment = 1, Suffix = " spd",
         Callback = function(value)
@@ -152,6 +154,7 @@ Tab1:AddKeybind({
 
 Tab1:AddColorPicker({
         Name = "Test ColorPicker",
+        Description = "Slider hue kini bisa digeser dengan jari juga.",
         Default = Color3.fromRGB(0, 195, 255),
         Callback = function(color)
                 print("[TEST] Warna dipilih:", color)
@@ -258,9 +261,14 @@ Tab3:AddParagraph({
                 .. "3) SEARCH BAR di atas: coba ketik 'toggle' atau 'slider' — elemen terfilter real-time.\n"
                 .. "4) COLORPICKER & CONFIRM DIALOG di tab Komponen.\n"
                 .. "5) Toggle sekarang berbentuk switch ala Wind UI.\n"
-                .. "6) v2.1.0: FIX ikon ⚡ loncat-loncat saat digeser — drag kini\n"
-                .. "   presisi di mouse & jari; window anti hilang dari layar,\n"
-                .. "   slider & tombol lebih nyaman disentuh, tap makin responsif.",
+                .. "6) v2.1.0: FIX ikon ⚡ loncat-loncat saat digeser; window\n"
+                .. "   anti hilang dari layar; slider & tombol nyaman disentuh.\n"
+                .. "7) v2.1.1: SEMUA elemen menerima Description = 'teks kecil'\n"
+                .. "   di bawah judul (lihat slider/toggle/colorpicker di tab\n"
+                .. "   Komponen) + FIX ikon ⚡ yang loncat saat baru diklik:\n"
+                .. "   kini nol loncatan — ketuk langsung responsif, pop animasi\n"
+                .. "   menyala simetris dari tengah; tombol minimize & posisi\n"
+                .. "   ikon tab rapi di semua ukuran layar.",
 })
 
 Tab3:AddSection({ Name = "INFO" })

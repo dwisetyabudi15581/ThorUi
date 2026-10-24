@@ -1,12 +1,12 @@
 # ⚡ ThorUi v2 — Roblox UI Library bertema Dewa Petir
 
 > UI library untuk Roblox dengan tema **Thor / Dewa Petir**: gelap, snappy, dan elektrik.
-> **v2.1.0: Layout & UX terinspirasi Wind UI** — sidebar tab, search bar, splash screen, ColorPicker, Confirm dialog.
+> **v2.1.1: Layout & UX terinspirasi Wind UI + Description ala Wind UI di semua elemen** — sidebar tab, search bar, splash screen, ColorPicker, Confirm dialog.
 > Dukungan penuh **PC & Mobile** · Window *draggable* & *resizable* · **100% murni script** (tanpa Asset ID eksternal) · **Anti memory-leak**
 
 | | |
 |---|---|
-| **Versi** | 2.1.0 |
+| **Versi** | 2.1.1 |
 | **Tipe** | ModuleScript tunggal (Luau), tanpa dependensi |
 | **Platform** | PC (Mouse + Keyboard) & Mobile (Touch) |
 | **Aset** | `Instance.new` / `UICorner` / `UIStroke` / `UIGradient` saja — anti asset takedown |
@@ -40,6 +40,17 @@
 - **Target sentuh lebih besar** — tombol kontrol header (—/✕) 28→32px, handle resize 28→34px, ukuran font ikon kontrol 14→16.
 - **Hygiene memory** — koneksi `Completed` pada efek `Zap`/`popScale` kini ikut terlacak di `Registry` (auto-disconnect saat destroy).
 - **Audit ulang seluruh handler input** — window drag, resize grip, slider, dan ColorPicker sudah benar (delta dihitung dari snapshot nilai); dropdown multi mem-*snapshot* nilai sebelum callback; toggle tap-entuh-card.
+
+### Perbaikan di v2.1.1 (audit tata letak + keterangan elemen)
+
+- **Description ala Wind UI di SEMUA elemen** — sebelumnya config `Description` diabaikan total ("keterangan slider dll tidak kelihatan"). Kini setiap elemen (Button, Toggle, Slider, Dropdown, TextInput, Keybind, ColorPicker, Section) menerima `cfg.Description` → teks keterangan kecil terbaca di bawah judul, otomatis membungkus teks panjang, dan bisa diubah kapan pun lewat `Element:SetDescription("teks")`.
+- **FIX ikon ⚡ loncat setiap kali diklik** — akar masalah: posisi awal gesture dibaca dari `AbsolutePosition` lalu ditulis ke `Position`; di sebagian lingkungan (CoreGui/executor/DPI mobile) keduanya berbeda basis koordinat → ikon melompat dulu baru bisa digeser. Kini konversinya meniru formula engine sendiri (`Scale × ukuran parent + Offset`) → identitas visual terjamin, **nol loncatan saat ditekan**. Anchor ikon dipindah ke pusat (0.5, 0.5) sehingga animasi pop & efek "digenggam" menyala simetris dari tengah (dulu membesar ke kanan-bawah, terlihat seperti terloncat).
+- **FIX snapshot (0,0)** — sebagian executor melaporkan `InputBegan` sentuhan di (0,0) yang membuat ikon melayang lintas layar; snapshot mencurigakan kini otomatis diambil ulang dari gerakan pertama.
+- **FIX tombol minimize "—" tidak pada tempatnya** — tepi kanan search bar dikurangi agar tidak menimpa area tombol kontrol; tombol `—` dan `✕` kini berdampingan rapi di ujung kanan header.
+- **FIX ikon tab di sidebar icon-only** — saat window sempit, ikon tab otomatis di tengah tombol (dulu menempel di kiri); glyph emoji di-*nudge* +1-2px agar tidak "melayang" ke atas.
+- **FIX ColorPicker slider hue via sentuhan** — dulu slider hue hanya bisa digeser mouse; kini jari juga bisa (filter gesture source-lock).
+- **Gesture source-lock menyeluruh** — drag window, resize, slider, dan ikon ⚡ mengunci sumber input saat gesture dimulai: di perangkat *hybrid* (PC layar sentuh / tablet + mouse) posisi mouse yang menetap tidak lagi bikin UI meloncat; jari kedua tidak mengganggu drag yang sedang berjalan.
+- **Sentuhan mobile makin nyaman** — nilai slider tidak terpotong (`TextTruncate`), baris opsi dropdown 24→28px, kartu Confirm dialog auto-fit di layar sempit.
 
 ### Fitur inti
 
@@ -169,7 +180,17 @@ Contoh implementasi **lengkap** (semua komponen) tersedia di [`Example.lua`](Exa
 ### `Tab` — Komponen
 
 Semua komponen mengembalikan objek `Element` dengan method seragam:
-**`Element:Set(...)`** (set nilai; param kedua `false` = tanpa memicu callback), **`Element:Get()`** (ambil nilai), **`Element:Remove()`** (hapus elemen dari UI).
+**`Element:Set(...)`** (set nilai; param kedua `false` = tanpa memicu callback), **`Element:Get()`** (ambil nilai), **`Element:SetDescription(teks)`** (ubah keterangan di bawah judul), **`Element:Remove()`** (hapus elemen dari UI).
+
+Semua komponen juga menerima **`Description`** (string opsional) — teks keterangan kecil yang tampil di bawah judul elemen, ala Wind UI:
+
+```lua
+Tab:AddSlider({
+    Name = "WalkSpeed",
+    Description = "Atur kecepatan jalan karakter (16 - 200).",  -- ← keterangan kecil
+    Min = 16, Max = 200, Default = 16,
+})
+```
 
 #### `Tab:AddButton({ Name, Callback })`
 
@@ -200,6 +221,7 @@ godMode:Get()            -- ambil nilai (bool)
 | `Increment` | `number` | Kelipatan langkah (default `1`). |
 | `Precision` | `number` | Jumlah desimal tampilan. |
 | `Suffix` | `string` | Satuan tampilan, mis. `" spd"`. |
+| `Description` | `string` | Keterangan kecil di bawah judul (opsional). |
 
 ```lua
 Tab:AddSlider({

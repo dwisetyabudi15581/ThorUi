@@ -1,8 +1,8 @@
 --════════════════════════════════════════════════════════════════════════════
---  ⚡  ThorUi v2.0.0 — Roblox UI Library bertema Dewa Petir (Thor / Petir)
+--  ⚡  ThorUi v2.1.1 — Roblox UI Library bertema Dewa Petir (Thor / Petir)
 --      Layout & UX terinspirasi Wind UI · tema tetap 100% Thor ⚡
 --  ──────────────────────────────────────────────────────────────────────────
---  Versi     : 2.0.0 (ModuleScript tunggal, tanpa dependensi eksternal)
+--  Versi     : 2.1.1 (ModuleScript tunggal, tanpa dependensi eksternal)
 --  Platform  : PC & Mobile — draggable, resizable, cross-platform
 --
 --  BARU DI v2.0.0 (gaya Wind UI)
@@ -13,6 +13,30 @@
 --  • ColorPicker        : kotak SV + slider hue + tampilan HEX/RGB
 --  • Confirm dialog     : modal konfirmasi bergaya Wind (overlay + pop)
 --  • Toggle switch      : pill + knob meluncur ala kilat
+--
+--  BARU & FIX DI v2.1.1 (audit ulang tata letak + keterangan elemen)
+--  • Description        : SEMUA elemen (Button/Toggle/Slider/Dropdown/
+--                         TextInput/Keybind/ColorPicker/Section) menerima
+--                         cfg.Description → teks keterangan kecil di bawah
+--                         judul, terbaca jelas di mobile & desktop +
+--                         Element:SetDescription(teks) untuk ubah kapan pun
+--  • FIX tombol minimize : tombol "—" tidak lagi menimpa search bar
+--  • FIX ikon            : ikon tab otomatis DI TENGAH saat sidebar
+--                         icon-only; glyph emoji dinudge agar tidak
+--                         "melayang" ke atas
+--  • FIX drag ikon ⚡    : sumber input (touch/mouse) DIKUNCI saat gesture
+--                         → tidak loncat di perangkat hybrid (PC layar
+--                         sentuh / tablet + mouse); jari kedua aman
+--  • FIX ikon ⚡ klik    : TIDAK LAGI LONCAT saat ditekan — konversi posisi
+--                         kini meniru formula engine (bukan AbsolutePosition
+--                         yang beda basis koordinat di sebagian executor) +
+--                         anchor pusat → animasi pop simetris dari tengah;
+--                         snapshot (0,0) dari executor juga diamankan
+--  • FIX ColorPicker     : slider HUE kini bisa digeser dengan JARI
+--                         (dulu hanya mouse); drag window/resize/slider
+--                         juga sudah source-lock & multi-touch aman
+--  • FIX slider          : nilai (angka + suffix) tidak terpotong
+--  • Confirm dialog      : lebar kartu auto-fit di layar sempit (mobile)
 --
 --  FITUR LANJUTAN
 --  • Tema Lightning & Thunder : Midnight Blue + Electric Blue / Lightning Gold
@@ -51,9 +75,12 @@
 --  Tab:AddColorPicker({Name, Default, Callback})          :Set(Color3) / :Get()
 --  Tab:AddSection({Name})   Tab:AddLabel({Text})   Tab:AddParagraph({Title, Text})
 --  Element:Set(...)         Element:Get()          Element:Remove()
+--  Element:SetDescription(teks)   → ubah keterangan elemen kapan pun
 --
---  Catatan: ubah warna di ThorUi.Theme SEBELUM CreateWindow untuk custom tema.
---  Contoh implementasi lengkap ada di BLOK PALING BAWAH file ini.
+--  Catatan: SEMUA elemen menerima Description = "keterangan kecil" yang
+--  ditampilkan di bawah judul (ala Wind UI). Ubah warna di ThorUi.Theme
+--  SEBELUM CreateWindow untuk custom tema. Contoh implementasi lengkap ada
+--  di BLOK PALING BAWAH file ini.
 --════════════════════════════════════════════════════════════════════════════
 
 --// ───────────────────────────── Services ──────────────────────────────────
@@ -66,7 +93,7 @@ local LocalPlayer = Players.LocalPlayer
 
 --// ─────────────────────────────── Library ──────────────────────────────────
 local ThorUi = {
-    Version = "2.1.0",
+    Version = "2.1.1",
 }
 
 --// ──────────────────────────────── Tema ────────────────────────────────────
@@ -247,6 +274,32 @@ local function GetViewport()
         return camera.ViewportSize
     end
     return Vector2.new(1280, 720)
+end
+
+--  Filter gerakan untuk gesture yang sedang berjalan (drag/geser).
+--  FIX v2.1.1 "loncat-loncat" di perangkat HYBRID (mouse + layar sentuh):
+--  begitu gesture dimulai dari SENTUHAN, hanya InputObject sentuhan YANG
+--  SAMA yang boleh menggerakkan UI; begitu dari MOUSE, hanya MouseMovement.
+--  Tanpa ini, posisi mouse yang menetap di tempat lain ikut terbaca →
+--  ikon / jendela / slider meloncat ke posisi aneh.
+local function gestureInput(startInput, input)
+    if not startInput then
+        return false
+    end
+    if startInput.UserInputType == Enum.UserInputType.Touch then
+        return input == startInput
+    end
+    return input.UserInputType == Enum.UserInputType.MouseMovement
+end
+
+--  Filter akhir gesture: hanya input yang MEMULAI gesture (atau lepasnya
+--  klik kiri mouse) yang boleh mengakhirinya — jari kedua / tombol lain
+--  tidak mengganggu drag yang sedang berjalan.
+local function gestureEnded(startInput, input)
+    if startInput and startInput.UserInputType == Enum.UserInputType.Touch then
+        return input == startInput
+    end
+    return input.UserInputType == Enum.UserInputType.MouseButton1
 end
 
 local function decimalsOf(n)
@@ -598,9 +651,13 @@ local function ensureToggleButton()
         Text = "",
         AutoButtonColor = false,
         ZIndex = 50,
-        -- anchor (0,0) permanen: tidak pernah diubah saat drag → tidak pernah loncat
-        AnchorPoint = Vector2.new(0, 0),
-        Position = UDim2.new(1, -16 - TOGGLE_SIZE, 0.72, 0),
+        -- anchor TENGAH (0.5,0.5) permanen: animasi pop & efek "digenggam"
+        -- menyala SIMETRIS dari pusat. (Dengan anchor 0,0 ikon membesar ke
+        -- kanan-bawah → tampak seperti terloncat setiap kali diketuk.)
+        -- Anchor tidak pernah diubah saat drag → tidak ada loncatan anchor.
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        -- posisi awal = titik TENGAH ikon: tepi kanan 16px, 72% tinggi layar
+        Position = UDim2.new(1, -16 - TOGGLE_SIZE * 0.5, 0.72, 0),
         Size = UDim2.fromOffset(TOGGLE_SIZE, TOGGLE_SIZE),
         BackgroundColor3 = Theme.BackgroundAlt,
         BorderSizePixel = 0,
@@ -613,10 +670,11 @@ local function ensureToggleButton()
 
     Create("TextLabel", {
         BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0, 2), -- +2px: glyph ⚡ emoji cenderung melayang ke atas
         Size = UDim2.new(1, 0, 1, 0),
         Text = "⚡",
         Font = Theme.FontBold,
-        TextSize = 24,
+        TextSize = 26,
         TextColor3 = Theme.White,
         Parent = btn,
     })
@@ -654,31 +712,45 @@ local function ensureToggleButton()
     end
 
     -- drag BEBAS + klik (responsif mouse & sentuhan, aman multi-touch)
-    --  FIX v2.1.0 ("loncat-loncat"): posisi awal disimpan sebagai NILAI
-    --  (Vector3/Vector3 disalin saat dibaca). Objek InputObject untuk TOUCH
-    --  adalah objek yang SAMA antara InputBegan & InputChanged dan posisinya
-    --  TERUS termutasi — kalau delta dihitung dari objek (bukan snapshot
-    --  nilai), delta selalu 0 → ikon tidak bergeser & lepas jari malah
-    --  memicu toggle window (terlihat seperti bug loncat-loncat).
+    --  FIX v2.1.1: sumber input DIKUNCI saat gesture (touch → InputObject
+    --  yang sama; mouse → MouseMovement) + snapshot NILAI posisi awal.
+    --  FIX "loncat setiap kali diklik": dulu posisi awal drag dibaca dari
+    --  AbsolutePosition lalu ditulis ke Position — di beberapa lingkungan
+    --  (CoreGui/executor/DPI mobile) keduanya berbeda basis koordinat,
+    --  sehingga SETIAP tekanan ikon melompat dulu baru bisa digeser.
+    --  Kini konversi scale→offset meniru formula engine sendiri
+    --  (posisi = Scale × ukuran parent + Offset) → identitas visual
+    --  TERJAMIN di semua perangkat: nol loncatan saat ditekan.
     --  • geser → ikon mengikuti jari/mouse & TETAP di posisi terakhir
     --  • ketuk (tanpa bergeser > 6px) → buka/tutup semua window
+    --  • jari kedua yang menumpuk di ikon TIDAK me-reset anchor drag
     local dragging = false
     local moved = false
     local startInput = nil
     local startVec = nil      -- snapshot NILAI posisi input saat gesture mulai
-    local startOffset = nil   -- snapshot NILAI posisi absolut ikon saat mulai
+    local startOffset = nil   -- snapshot NILAI titik TENGAH ikon saat mulai
 
     reg:Connect(btn.InputBegan, function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1
             or input.UserInputType == Enum.UserInputType.Touch then
+            if dragging then
+                return
+            end
             dragging = true
             moved = false
             startInput = input
             startVec = input.Position -- Vector3 disalin PER NILAI saat dibaca
-            local abs = btn.AbsolutePosition
-            startOffset = Vector2.new(abs.X, abs.Y)
-            -- kunci posisi jadi offset murni (anchor sudah 0,0 sejak dibuat,
-            -- jadi tidak ada perubahan anchor → tidak ada loncatan visual)
+            -- kunci posisi jadi offset murni TANPA AbsolutePosition:
+            -- tiru persis formula yang dipakai engine menempatkan elemen,
+            -- sehingga hasilnya 100% identik secara visual (tidak meloncat)
+            local p = btn.Position
+            local ps = (btn.Parent and btn.Parent.AbsoluteSize.X > 0)
+                and btn.Parent.AbsoluteSize
+                or GetViewport()
+            startOffset = Vector2.new(
+                p.X.Scale * ps.X + p.X.Offset,
+                p.Y.Scale * ps.Y + p.Y.Offset
+            )
             btn.Position = UDim2.new(0, startOffset.X, 0, startOffset.Y)
         end
     end)
@@ -687,9 +759,16 @@ local function ensureToggleButton()
         if not dragging then
             return
         end
-        -- sentuhan: objek sama persis (posisinya termutasi); mouse: MouseMovement
-        if input ~= startInput and input.UserInputType ~= Enum.UserInputType.MouseMovement then
+        -- FIX v2.1.1: hanya gerakan dari sumber input yang MEMULAI gesture
+        if not gestureInput(startInput, input) then
             return
+        end
+        -- sebagian executor melaporkan InputBegan sentuhan di (0,0) → delta
+        -- awal jadi raksasa & ikon melayang lintas layar. Jika snapshot
+        -- mencurigakan, ambil ulang dari gerakan pertama (ikon tetap di
+        -- tempatnya, lalu mengikuti jari dari titik ini — tidak meloncat).
+        if startVec.X == 0 and startVec.Y == 0 and startVec.Z == 0 then
+            startVec = input.Position
         end
         local delta = input.Position - startVec
         if math.abs(delta.X) > 6 or math.abs(delta.Y) > 6 then
@@ -699,24 +778,25 @@ local function ensureToggleButton()
                 Tween(reg, scale, TI_HOVER, { Scale = 1.15 })
             end
         end
-        -- posisi bebas + clamp agar ikon tetap terlihat di dalam layar
+        -- posisi bebas + clamp: SELURUH ikon tetap terlihat (margin 4px).
+        -- startOffset = titik TENGAH ikon (anchor 0.5,0.5), jadi batas clamp
+        -- dihitung dari setengah ukuran — ikon yang sedang membesar saat
+        -- digenggam (×1.15) pun tidak pernah keluar dari layar.
         local vp = GetViewport()
-        local nx = math.clamp(startOffset.X + delta.X, 4, math.max(4, vp.X - TOGGLE_SIZE - 4))
-        local ny = math.clamp(startOffset.Y + delta.Y, 4, math.max(4, vp.Y - TOGGLE_SIZE - 4))
-        btn.Position = UDim2.new(0, nx, 0, ny)
+        local halfX = (btn.AbsoluteSize.X > 0 and btn.AbsoluteSize.X or TOGGLE_SIZE) * 0.5
+        local halfY = (btn.AbsoluteSize.Y > 0 and btn.AbsoluteSize.Y or TOGGLE_SIZE) * 0.5
+        local nx = math.clamp(startOffset.X + delta.X, 4 + halfX, math.max(4 + halfX, vp.X - halfX - 4))
+        local ny = math.clamp(startOffset.Y + delta.Y, 4 + halfY, math.max(4 + halfY, vp.Y - halfY - 4))
+        -- offset dibulatkan agar ikon tidak "getar" di antara pixel
+        btn.Position = UDim2.new(0, math.floor(nx + 0.5), 0, math.floor(ny + 0.5))
     end)
 
     reg:Connect(UserInputService.InputEnded, function(input)
         if not dragging then
             return
         end
-        -- hanya akhiri jika jari/klik yang MULAI drag ini yang berakhir
-        -- (agar multi-touch / jari kedua tidak membatalkan drag)
-        local isSameTouch = input == startInput
-        local isSameMouse = startInput ~= nil
-            and startInput.UserInputType == Enum.UserInputType.MouseButton1
-            and input.UserInputType == Enum.UserInputType.MouseButton1
-        if not (isSameTouch or isSameMouse) then
+        -- hanya jari/klik yang MEMULAI drag yang boleh mengakhirinya
+        if not gestureEnded(startInput, input) then
             return
         end
         dragging = false
@@ -945,7 +1025,9 @@ function TabClass.new(window, cfg)
 
     local icon = Create("TextLabel", {
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 10, 0, 0),
+        -- +1px: glyph emoji bawaan Roblox cenderung "melayang" ke atas;
+        -- saat sidebar icon-only posisi digeser ke tengah oleh _updateResponsive
+        Position = UDim2.new(0, 10, 0, 1),
         Size = UDim2.new(0, 18, 1, 0),
         Text = tostring(cfg.Icon or "⚡"),
         Font = Theme.FontBold,
@@ -1138,6 +1220,43 @@ function TabClass:Remove()
     end
 end
 
+--// ───────────── Elemen: keterangan/Description (ala Wind UI) ────────────
+--  Teks kecil redup di bawah judul elemen. Dibuat SECARA MALAS (hanya saat
+--  ada isinya) supaya jarak antar-baris tidak berubah saat tidak dipakai.
+--  FIX v2.1.1: sebelumnya config Description diabaikan total → "keterangan
+--  slider dll tidak kelihatan". Pemakaian:
+--      local setDesc = attachDescription(card, 2)  -- urutan setelah judul
+--      setDesc(cfg.Description)                     -- boleh nil/kosong
+--      setDesc("teks baru")                         -- dipanggil ulang kapan pun
+local function attachDescription(card, order)
+    local label = nil
+    return function(text)
+        if text == nil or tostring(text) == "" then
+            if label then
+                label.Visible = false
+            end
+            return
+        end
+        if not label then
+            label = Create("TextLabel", {
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 0, 0),
+                AutomaticSize = Enum.AutomaticSize.Y,
+                Font = Theme.FontMain,
+                TextSize = 12, -- cukup besar untuk dibaca di mobile, tetap halus
+                TextColor3 = Theme.TextDim,
+                TextWrapped = true,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                TextYAlignment = Enum.TextYAlignment.Top,
+                LayoutOrder = order,
+                Parent = card,
+            })
+        end
+        label.Visible = true
+        label.Text = tostring(text)
+    end
+end
+
 --// ─────────────────────────── Elemen: BUTTON ───────────────────────────────
 function TabClass:AddButton(cfg)
     cfg = cfg or {}
@@ -1155,6 +1274,9 @@ function TabClass:AddButton(cfg)
         Parent = card,
     })
 
+    local setDesc = attachDescription(card, 2)
+    setDesc(cfg.Description)
+
     cardHover(reg, card, stroke)
 
     reg:Connect(card.Activated, function()
@@ -1169,6 +1291,9 @@ function TabClass:AddButton(cfg)
         Name = cfg.Name,
         Instance = card,
         Registry = reg,
+        SetDescription = function(_, t)
+            setDesc(t)
+        end,
         Get = function(_)
             return label.Text
         end,
@@ -1232,6 +1357,10 @@ function TabClass:AddToggle(cfg)
     Corner(knob, UDim.new(1, 0))
     Stroke(knob, { Color = Theme.Background, Thickness = 1, Transparency = 0.4 })
 
+    -- keterangan kecil di bawah judul (ala Wind UI)
+    local setDesc = attachDescription(card, 2)
+    setDesc(cfg.Description)
+
     local state = { Value = cfg.Default == true, Callback = cfg.Callback }
 
     local function render(instant)
@@ -1268,6 +1397,9 @@ function TabClass:AddToggle(cfg)
         Name = cfg.Name,
         Instance = card,
         Registry = reg,
+        SetDescription = function(_, t)
+            setDesc(t)
+        end,
         Get = function(_)
             return state.Value
         end,
@@ -1315,15 +1447,20 @@ function TabClass:AddSlider(cfg)
         TextSize = 12,
         TextColor3 = Theme.AccentGold,
         TextXAlignment = Enum.TextXAlignment.Right,
+        TextTruncate = Enum.TextTruncate.AtEnd,
         Parent = row1,
     })
+
+    -- keterangan kecil di bawah judul (ala Wind UI)
+    local setDesc = attachDescription(card, 2)
+    setDesc(cfg.Description)
 
     -- baris slider ditinggikan (28px) + hit-area transparan supaya nyaman
     -- disentuh jari — bukan cuma track 6px yang harus dibidik (mobile-friendly)
     local row2 = Create("Frame", {
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 0, 28),
-        LayoutOrder = 2,
+        LayoutOrder = 3,
         Parent = card,
     })
     local track = Create("Frame", {
@@ -1434,19 +1571,16 @@ function TabClass:AddSlider(cfg)
         end
     end)
     reg:Connect(UserInputService.InputChanged, function(input)
-        if sliding and (input == slideInput or input.UserInputType == Enum.UserInputType.MouseMovement) then
+        if sliding and gestureInput(slideInput, input) then
             updateFromX(input.Position.X)
         end
     end)
     reg:Connect(UserInputService.InputEnded, function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-            or input.UserInputType == Enum.UserInputType.Touch then
-            if sliding then
-                sliding = false
-                slideInput = nil
-                Tween(reg, knobScale, TI_HOVER, { Scale = 1 })
-                Tween(reg, stroke, TI_HOVER, { Color = Theme.StrokeDim, Transparency = 0.35 })
-            end
+        if sliding and gestureEnded(slideInput, input) then
+            sliding = false
+            slideInput = nil
+            Tween(reg, knobScale, TI_HOVER, { Scale = 1 })
+            Tween(reg, stroke, TI_HOVER, { Color = Theme.StrokeDim, Transparency = 0.35 })
         end
     end)
 
@@ -1457,6 +1591,9 @@ function TabClass:AddSlider(cfg)
         Name = cfg.Name,
         Instance = card,
         Registry = reg,
+        SetDescription = function(_, t)
+            setDesc(t)
+        end,
         Get = function(_)
             return state.Value
         end,
@@ -1523,13 +1660,17 @@ function TabClass:AddDropdown(cfg)
         Parent = header,
     })
 
+    -- keterangan kecil di bawah judul (ala Wind UI)
+    local setDesc = attachDescription(card, 2)
+    setDesc(cfg.Description)
+
     -- daftar opsi (card otomatis memanjang via AutomaticSize)
     local holder = Create("Frame", {
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 0, 0),
         AutomaticSize = Enum.AutomaticSize.Y,
         Visible = false,
-        LayoutOrder = 2,
+        LayoutOrder = 3,
         Parent = card,
     })
     Create("UIListLayout", {
@@ -1589,7 +1730,7 @@ function TabClass:AddDropdown(cfg)
             AutoButtonColor = false,
             BackgroundColor3 = Theme.Card,
             BackgroundTransparency = 1,
-            Size = UDim2.new(1, 0, 0, 24),
+            Size = UDim2.new(1, 0, 0, 28), -- 28px: area sentuh nyaman di jari
             BorderSizePixel = 0,
             LayoutOrder = #options + 1,
             Parent = holder,
@@ -1679,6 +1820,9 @@ function TabClass:AddDropdown(cfg)
         Name = cfg.Name,
         Instance = card,
         Registry = reg,
+        SetDescription = function(_, t)
+            setDesc(t)
+        end,
         Get = function(_)
             if multi then
                 local copy = {}
@@ -1736,6 +1880,10 @@ function TabClass:AddTextInput(cfg)
         Parent = card,
     })
 
+    -- keterangan kecil di bawah judul (ala Wind UI)
+    local setDesc = attachDescription(card, 2)
+    setDesc(cfg.Description)
+
     local box = Create("TextBox", {
         Size = UDim2.new(1, 0, 0, 30),
         BackgroundColor3 = Theme.Background,
@@ -1749,7 +1897,7 @@ function TabClass:AddTextInput(cfg)
         TextXAlignment = Enum.TextXAlignment.Left,
         ClearTextOnFocus = cfg.ClearOnFocus == true,
         ClipsDescendants = true,
-        LayoutOrder = 2,
+        LayoutOrder = 3,
         Parent = card,
     })
     Corner(box, 8)
@@ -1780,6 +1928,9 @@ function TabClass:AddTextInput(cfg)
         Name = cfg.Name,
         Instance = card,
         Registry = reg,
+        SetDescription = function(_, t)
+            setDesc(t)
+        end,
         Get = function(_)
             return box.Text
         end,
@@ -1826,6 +1977,10 @@ function TabClass:AddKeybind(cfg)
         TextTruncate = Enum.TextTruncate.AtEnd,
         Parent = row,
     })
+
+    -- keterangan kecil di bawah judul (ala Wind UI)
+    local setDesc = attachDescription(card, 2)
+    setDesc(cfg.Description)
 
     local state = {
         Bind = cfg.Default,
@@ -1902,6 +2057,9 @@ function TabClass:AddKeybind(cfg)
         Name = cfg.Name,
         Instance = card,
         Registry = reg,
+        SetDescription = function(_, t)
+            setDesc(t)
+        end,
         Get = function(_)
             return state.Bind
         end,
@@ -1977,13 +2135,17 @@ function TabClass:AddColorPicker(cfg)
     Corner(swatch, 6)
     local swatchStroke = Stroke(swatch, { Color = Theme.White, Thickness = 1, Transparency = 0.45 })
 
+    -- keterangan kecil di bawah judul (ala Wind UI)
+    local setDesc = attachDescription(card, 2)
+    setDesc(cfg.Description)
+
     -- ── panel picker (expand/collapse seperti dropdown) ──
     local panel = Create("Frame", {
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 0, 0),
         AutomaticSize = Enum.AutomaticSize.Y,
         Visible = false,
-        LayoutOrder = 2,
+        LayoutOrder = 3,
         Parent = card,
     })
     Create("UIListLayout", {
@@ -1998,6 +2160,7 @@ function TabClass:AddColorPicker(cfg)
         BackgroundColor3 = Color3.fromHSV(state.H, 1, 1),
         BorderSizePixel = 0,
         ClipsDescendants = true,
+        Active = true, -- FIX v2.1.1: serap sentuhan agar tidak ikut menggulir konten saat menggeser warna
         LayoutOrder = 1,
         Parent = panel,
     })
@@ -2053,6 +2216,7 @@ function TabClass:AddColorPicker(cfg)
         Size = UDim2.new(1, 0, 0, 14),
         BackgroundColor3 = Theme.White,
         BorderSizePixel = 0,
+        Active = true, -- FIX v2.1.1: serap sentuhan (drag di mobile tidak menggulir konten)
         LayoutOrder = 2,
         Parent = panel,
     })
@@ -2141,6 +2305,9 @@ function TabClass:AddColorPicker(cfg)
     reg:Connect(svBox.InputBegan, function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1
             or input.UserInputType == Enum.UserInputType.Touch then
+            if svDragging or hueDragging then
+                return
+            end
             svDragging = true
             svInput = input
             Tween(reg, svStroke, TI_HOVER, { Color = Theme.Stroke, Transparency = 0 })
@@ -2150,33 +2317,33 @@ function TabClass:AddColorPicker(cfg)
     reg:Connect(hueBar.InputBegan, function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1
             or input.UserInputType == Enum.UserInputType.Touch then
+            if svDragging or hueDragging then
+                return
+            end
             hueDragging = true
             hueInput = input
             updateHue(input.Position.X)
         end
     end)
     reg:Connect(UserInputService.InputChanged, function(input)
-        if input == svInput or input.UserInputType == Enum.UserInputType.MouseMovement then
-            if svDragging then
-                updateSV(input.Position.X, input.Position.Y)
-            elseif hueDragging then
-                updateHue(input.Position.X)
-            end
+        if svDragging and gestureInput(svInput, input) then
+            updateSV(input.Position.X, input.Position.Y)
+        elseif hueDragging and gestureInput(hueInput, input) then
+            -- FIX v2.1.1: slider HUE kini mengikuti JARI juga — dulu filter
+            -- hanya memeriksa svInput sehingga drag hue via sentuhan MATI total
+            updateHue(input.Position.X)
         end
     end)
     reg:Connect(UserInputService.InputEnded, function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-            or input.UserInputType == Enum.UserInputType.Touch then
-            if svDragging then
-                svDragging = false
-                svInput = nil
-                Tween(reg, svStroke, TI_HOVER, { Color = Theme.StrokeDim, Transparency = 0.3 })
-                Zap(reg, swatch, Theme.AccentGold, 6)
-            end
-            if hueDragging then
-                hueDragging = false
-                hueInput = nil
-            end
+        if svDragging and gestureEnded(svInput, input) then
+            svDragging = false
+            svInput = nil
+            Tween(reg, svStroke, TI_HOVER, { Color = Theme.StrokeDim, Transparency = 0.3 })
+            Zap(reg, swatch, Theme.AccentGold, 6)
+        end
+        if hueDragging and gestureEnded(hueInput, input) then
+            hueDragging = false
+            hueInput = nil
         end
     end)
 
@@ -2199,6 +2366,9 @@ function TabClass:AddColorPicker(cfg)
         Name = cfg.Name,
         Instance = card,
         Registry = reg,
+        SetDescription = function(_, t)
+            setDesc(t)
+        end,
         Get = function(_)
             return currentColor()
         end,
@@ -2244,11 +2414,14 @@ function TabClass:AddSection(cfg)
         LayoutOrder = 1,
         Parent = holder,
     })
+    -- keterangan kecil di bawah judul section (ala Wind UI)
+    local setDesc = attachDescription(holder, 2)
+    setDesc(cfg.Description)
     local line = Create("Frame", {
         BackgroundColor3 = Theme.AccentGold,
         BorderSizePixel = 0,
         Size = UDim2.new(1, 0, 0, 1),
-        LayoutOrder = 2,
+        LayoutOrder = 3,
         Parent = holder,
     })
     Gradient(line, Theme.AccentGold, Theme.Accent, 0, NumberSequence.new({
@@ -2425,7 +2598,7 @@ function ThorUi:CreateWindow(cfg)
     })
     Create("TextLabel", {
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 12, 0, 0),
+        Position = UDim2.new(0, 12, 0, 1), -- +1px: glyph ⚡ emoji cenderung melayang ke atas
         Size = UDim2.new(0, 20, 1, 0),
         Text = "⚡",
         Font = Theme.FontBold,
@@ -2492,7 +2665,7 @@ function ThorUi:CreateWindow(cfg)
         Size = UDim2.new(1, 0, 0, 16),
         Text = "v" .. ThorUi.Version,
         Font = Theme.FontMain,
-        TextSize = 10,
+        TextSize = 11,
         TextColor3 = Theme.TextDim,
         BackgroundTransparency = 1,
         Parent = sidebar,
@@ -2530,7 +2703,10 @@ function ThorUi:CreateWindow(cfg)
     local searchWrap = Create("Frame", {
         AnchorPoint = Vector2.new(0, 0.5),
         Position = UDim2.new(0, 10, 0.5, 0),
-        Size = UDim2.new(1, -102, 0, 30),
+        -- FIX v2.1.1: lebar dikurangi agar TIDAK menimpa tombol minimize "—"
+        -- (dulu tepi kanan search masuk ke area tombol kontrol → tombol "—"
+        -- tampak menempel di atas search bar / "tidak pada tempatnya")
+        Size = UDim2.new(1, -90, 0, 30),
         BackgroundColor3 = Theme.Card,
         BorderSizePixel = 0,
         Active = true, -- serap klik agar tidak memicu drag window
@@ -2540,7 +2716,7 @@ function ThorUi:CreateWindow(cfg)
     local searchStroke = Stroke(searchWrap, { Color = Theme.StrokeDim, Transparency = 0.35 })
     Create("TextLabel", {
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 8, 0, 0),
+        Position = UDim2.new(0, 8, 0, 1), -- +1px nudge glyph 🔍
         Size = UDim2.new(0, 16, 1, 0),
         Text = "🔍",
         Font = Theme.FontMain,
@@ -2619,6 +2795,7 @@ function ThorUi:CreateWindow(cfg)
         Corner(btn, 8)
         local lbl = Create("TextLabel", {
             BackgroundTransparency = 1,
+            Position = UDim2.new(0, 0, 0, 1), -- +1px: glyph — / ✕ agar pas di tengah
             Size = UDim2.new(1, 0, 1, 0),
             Text = text,
             Font = Theme.FontBold,
@@ -2636,12 +2813,15 @@ function ThorUi:CreateWindow(cfg)
         return btn, lbl
     end
 
-    local collapseBtn, collapseLabel = makeControl("—", -74, Theme.AccentGold, function()
+    -- posisi tombol kontrol (dari kanan header):
+    --   "—" tepi kanan di -44 (rentang -76..-44)   "✕" tepi kanan di -6
+    --   (rentang -38..-6) → search bar berhenti di -80, tidak ada yang bertumpuk
+    local collapseBtn, collapseLabel = makeControl("—", -44, Theme.AccentGold, function()
         Zap(reg, collapseBtn, Theme.AccentGold, 8)
         self:SetCollapsed(not self.Collapsed)
     end)
     self.CollapseLabel = collapseLabel
-    local closeBtn = makeControl("✕", -38, Theme.Danger, function()
+    local closeBtn = makeControl("✕", -6, Theme.Danger, function()
         Zap(reg, closeBtn, Theme.Danger, 8)
         self:Hide()
     end)
@@ -2767,6 +2947,9 @@ function ThorUi:CreateWindow(cfg)
     local function beginDrag(input, handle)
         if input.UserInputType == Enum.UserInputType.MouseButton1
             or input.UserInputType == Enum.UserInputType.Touch then
+            if dragging then
+                return
+            end
             -- bawa window ini ke depan
             for _, w in ipairs(_state.Windows) do
                 w.Frame.ZIndex = 1
@@ -2785,7 +2968,7 @@ function ThorUi:CreateWindow(cfg)
         beginDrag(input, dragStrip)
     end)
     reg:Connect(UserInputService.InputChanged, function(input)
-        if dragging and (input == dragInput or input.UserInputType == Enum.UserInputType.MouseMovement) then
+        if dragging and gestureInput(dragInput, input) then
             local delta = input.Position - dragStart
             -- clamp: minimal 56px sisi window & 30px baris judul tetap
             -- terlihat — window tidak bisa "hilang" ke luar layar (Wind-like)
@@ -2807,8 +2990,7 @@ function ThorUi:CreateWindow(cfg)
         end
     end)
     reg:Connect(UserInputService.InputEnded, function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-            or input.UserInputType == Enum.UserInputType.Touch then
+        if dragging and gestureEnded(dragInput, input) then
             dragging = false
             dragInput = nil
         end
@@ -2826,6 +3008,9 @@ function ThorUi:CreateWindow(cfg)
             if self.Collapsed then
                 return
             end
+            if resizing then
+                return
+            end
             resizing = true
             resizeInput = input
             resizeStartPos = input.Position
@@ -2837,7 +3022,7 @@ function ThorUi:CreateWindow(cfg)
         end
     end)
     reg:Connect(UserInputService.InputChanged, function(input)
-        if resizing and (input == resizeInput or input.UserInputType == Enum.UserInputType.MouseMovement) then
+        if resizing and gestureInput(resizeInput, input) then
             local delta = input.Position - resizeStartPos
             local vp = GetViewport()
             local target = Vector2.new(
@@ -2853,14 +3038,11 @@ function ThorUi:CreateWindow(cfg)
         end
     end)
     reg:Connect(UserInputService.InputEnded, function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-            or input.UserInputType == Enum.UserInputType.Touch then
-            if resizing then
-                resizing = false
-                resizeInput = nil
-                for _, line in ipairs(gripLines) do
-                    Tween(reg, line, TI_HOVER, { BackgroundColor3 = Theme.TextDim })
-                end
+        if resizing and gestureEnded(resizeInput, input) then
+            resizing = false
+            resizeInput = nil
+            for _, line in ipairs(gripLines) do
+                Tween(reg, line, TI_HOVER, { BackgroundColor3 = Theme.TextDim })
             end
         end
     end)
@@ -3052,6 +3234,11 @@ function WindowClass:_updateResponsive()
     self.VersionLabel.Visible = not narrow and not self.Collapsed
     for _, t in ipairs(self.Tabs) do
         t.Label.Visible = not narrow
+        -- FIX v2.1.1: saat sidebar icon-only, ikon diletakkan PERSIS di tengah
+        -- tombol (dulu tetap menempel di kiri → ikon terlihat "tidak di tempatnya")
+        t.Icon.Position = narrow
+            and UDim2.new(0.5, -9, 0, 1)
+            or UDim2.new(0, 10, 0, 1)
     end
     if self.Collapsed then
         setSizeKeepTopLeft(self.Frame, Vector2.new(w, self.Frame.AbsoluteSize.Y))
@@ -3102,10 +3289,12 @@ function WindowClass:Confirm(cfg)
     })
 
     -- kartu dialog (CanvasGroup agar bisa fade)
+    -- FIX v2.1.1: lebar auto-fit agar tidak keluar layar di mobile
+    local vp = GetViewport()
     local card = Create("CanvasGroup", {
         AnchorPoint = Vector2.new(0.5, 0.5),
         Position = UDim2.new(0.5, 0, 0.5, 0),
-        Size = UDim2.new(0, 320, 0, 0),
+        Size = UDim2.new(0, math.min(320, math.max(220, math.floor(vp.X - 30))), 0, 0),
         AutomaticSize = Enum.AutomaticSize.Y,
         BackgroundColor3 = Theme.BackgroundAlt,
         BorderSizePixel = 0,
@@ -3395,6 +3584,7 @@ return ThorUi
 
         local godMode = Tab:AddToggle({
                 Name = "God Mode",
+                Description = "Kamu jadi kebal dari semua damage selama aktif.",
                 Default = false,
                 Callback = function(value)
                         print("God Mode:", value)
@@ -3403,6 +3593,7 @@ return ThorUi
 
         Tab:AddSlider({
                 Name = "WalkSpeed",
+                Description = "Atur kecepatan jalan karakter (16 - 200).",
                 Min = 16, Max = 200, Default = 16,
                 Increment = 1, Suffix = " spd",
                 Callback = function(value)
@@ -3416,6 +3607,7 @@ return ThorUi
 
         Tab:AddDropdown({
                 Name = "Senjata",
+                Description = "Pilih senjata andalan Sang Dewa Petir.",
                 Values = { "Mjolnir", "Stormbreaker", "Gungnir" },
                 Default = "Mjolnir",
                 -- Multi = true,  -- aktifkan untuk multi-select
@@ -3462,6 +3654,7 @@ return ThorUi
         -- godMode:Set(true)         → set nilai + panggil callback
         -- godMode:Set(true, false)  → set nilai TANPA callback
         -- godMode:Get()             → ambil nilai
+        -- godMode:SetDescription("teks keterangan baru")
         -- Window:Toggle() / Window:Destroy()
         -- Window:SetTitle("Judul Baru")
         -- ThorUi:Destroy()          → hancurkan seluruh UI + bersihkan memory
