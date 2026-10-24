@@ -1,17 +1,17 @@
 --════════════════════════════════════════════════════════════════════════════
---  ⚡  ThorUi v2.1.5 — Roblox UI Library bertema Dewa Petir (Thor / Petir)
---      Layout & UX terinspirasi Wind UI · tema tetap 100% Thor ⚡
+--  ⚡  ThorUi v2.2.0 — Roblox UI Library bertema Dewa Petir (Thor / Petir)
+--      Desain, layout & tema 100% original ThorUi ⚡
 --  ──────────────────────────────────────────────────────────────────────────
---  Versi     : 2.1.5 (ModuleScript tunggal, tanpa dependensi eksternal)
+--  Versi     : 2.2.0 (ModuleScript tunggal, tanpa dependensi eksternal)
 --  Platform  : PC & Mobile — draggable, resizable, cross-platform
 --
---  BARU DI v2.0.0 (gaya Wind UI)
+--  BARU DI v2.0.0 (tampilan modern)
 --  • Splash screen      : logo ⚡ + progress bar + status "memanggil petir"
 --  • Sidebar tab        : tab vertikal ber-ikon di sisi kiri (auto icon-only
 --                         saat window sempit / mobile)
 --  • Search bar         : cari & filter elemen di tab aktif secara real-time
 --  • ColorPicker        : kotak SV + slider hue + tampilan HEX/RGB
---  • Confirm dialog     : modal konfirmasi bergaya Wind (overlay + pop)
+--  • Confirm dialog     : modal konfirmasi modern (overlay + pop)
 --  • Toggle switch      : pill + knob meluncur ala kilat
 --
 --  BARU & FIX DI v2.1.1 (audit ulang tata letak + keterangan elemen)
@@ -95,6 +95,28 @@
 --                         ber-background di seluruh kodebase; swatch warna
 --                         ColorPicker adalah Frame, bukan TextLabel).
 --
+--  OPTIMASI DI v2.2.0 (permintaan user: "masih terasa berat banyak
+--                      rendutan — bikin seringan mungkin")
+--  • Cache pengukuran    : pengukur tinggi teks (GetTextSize) kini ber-
+--                         cache — teks & lebar tidak berubah = NOL ukur
+--                         ulang; Size hanya ditulis bila tinggi benar2
+--                         berubah (memutus reaksi berantai layout↔signal)
+--  • Refit terjadwal     : semua re-ukur digabung maksimal SATU pass per
+--                         frame utk SELURUH label (dulu: per label per
+--                         frame saat resize/rotasi → sumber rendutan)
+--  • Registry otomatis    : tween yang SELESAI otomatis keluar dari daftar
+--                         — dulu tiap hover/tap menumpuk tween mati sampai
+--                         window dihancurkan (ribuan entri di sesi panjang
+--                         → memori bengkak + Destroy/Remove makin lambat)
+--  • Hover hemat mobile  : efek hover card hanya dipasang di perangkat
+--                         bermouse — sentuhan mobile tak lagi membuat 2-4
+--                         tween percuma per ketukan (feedback tetap ada:
+--                         kilat Zap, animasi switch, splash tombol)
+--  • Search debounce     : filter elemen digabung 0.1s sekali saat mengetik
+--                         (dulu re-layout penuh tiap huruf)
+--  • Rebranding          : semua referensi library luar dihapus — desain,
+--                         layout & tema kini 100% original ThorUi
+--
 --  FITUR LANJUTAN
 --  • Tema Lightning & Thunder : Midnight Blue + Electric Blue / Lightning Gold
 --  • Animasi snappy ala kilat : TweenService (Back / Quart / Quad, cepat)
@@ -135,7 +157,7 @@
 --  Element:SetDescription(teks)   → ubah keterangan elemen kapan pun
 --
 --  Catatan: SEMUA elemen menerima Description = "keterangan kecil" yang
---  ditampilkan di bawah judul (ala Wind UI). Ubah warna di ThorUi.Theme
+--  ditampilkan di bawah judul elemen. Ubah warna di ThorUi.Theme
 --  SEBELUM CreateWindow untuk custom tema. Contoh implementasi lengkap ada
 --  di BLOK PALING BAWAH file ini.
 --════════════════════════════════════════════════════════════════════════════
@@ -151,7 +173,7 @@ local LocalPlayer = Players.LocalPlayer
 
 --// ─────────────────────────────── Library ──────────────────────────────────
 local ThorUi = {
-    Version = "2.1.5",
+    Version = "2.2.0",
 }
 
 --// ──────────────────────────────── Tema ────────────────────────────────────
@@ -200,26 +222,49 @@ function Registry:Connect(signal, handler)
     return conn
 end
 
+--  OPTIMASI v2.2.0: tween yang SUDAH SELESAI otomatis keluar dari daftar.
+--  Dulu setiap Tween() (hover, zap, animasi) menempel di _tweens SAMPAI
+--  registry di-Clean — di sesi panjang menumpuk RIBUAN tween mati (memori
+--  bengkak + Clean/Destroy makin lambat). Completed juga terpicu oleh
+--  :Cancel(), jadi entri ikut bersih saat Clean.
 function Registry:Track(tween)
-    table.insert(self._tweens, tween)
+    local list = self._tweens
+    list[#list + 1] = tween
+    local function release()
+        local t = self._tweens
+        local n = #t
+        for i = 1, n do
+            if t[i] == tween then
+                t[i] = t[n]
+                t[n] = nil
+                break
+            end
+        end
+    end
+    tween.Completed:Connect(release)
     return tween
 end
 
 function Registry:Clean()
-    for _, conn in ipairs(self._conns) do
+    -- OPTIMASI v2.2.0: kosongkan daftar DULU, baru proses snapshot —
+    -- menghindari mutasi-tengah-iterasi saat :Cancel() memicu Completed
+    -- (yang kini melepas tween dari daftar).
+    local conns = self._conns
+    local tweens = self._tweens
+    self._conns = {}
+    self._tweens = {}
+    for _, conn in ipairs(conns) do
         if conn.Connected then
             pcall(function()
                 conn:Disconnect()
             end)
         end
     end
-    for _, tween in ipairs(self._tweens) do
+    for _, tween in ipairs(tweens) do
         pcall(function()
             tween:Cancel()
         end)
     end
-    self._conns = {}
-    self._tweens = {}
 end
 
 --// ───────────────────────── Helper inti (murni script) ─────────────────────
@@ -321,7 +366,15 @@ local function Zap(registry, parent, color, radius)
 end
 
 --  Efek hover standar untuk card interaktif (stroke neon menyala).
+--  OPTIMASI v2.2.0: hover hanya dipasang di perangkat BERMOUSE. Di layar
+--  sentuh, tiap tap ikut memicu MouseEnter/Leave → 2-4 tween percuma per
+--  ketukan. Umpan balik sentuh tetap ada: kilat Zap & animasi switch/knob.
+local HOVER_FOR_MOUSE = UserInputService.MouseEnabled
+
 local function cardHover(registry, card, stroke)
+    if not HOVER_FOR_MOUSE then
+        return
+    end
     registry:Connect(card.MouseEnter, function()
         Tween(registry, card, TI_HOVER, { BackgroundColor3 = Theme.CardHover })
         Tween(registry, stroke, TI_HOVER, { Color = Theme.Stroke, Transparency = 0.05 })
@@ -381,6 +434,23 @@ end
 --  terpotong track slider.) Solusi: ukur tinggi teks secara EKSPLISIT via
 --  TextService:GetTextSize — sinkron, memakai lebar render sesungguhnya —
 --  lalu set Size eksplisit. UIListLayout selalu memesan ruang yang PAS.
+--// ── OPTIMASI v2.2.0: cache + refit terjadwal (anti rendutan) ───────────
+--  GetTextSize itu MAHAL bila dipanggil per-frame. Pola v2.1.2 menghubung-
+--  kan tiap label ke sinyal AbsoluteSize parent → saat window di-resize /
+--  layar dirotasi, pengukuran menyeruak PER FRAME untuk SEMUA label, lalu
+--  tulisan Size memicu re-layout berantai (card AutomaticSize.Y → holder
+--  → ScrollingFrame AutomaticCanvasSize) — inilah sumber "rendutan".
+--  Solusi dua lapis:
+--    (1) CACHE   : teks & lebar tak berubah → NOL ukur ulang; Size hanya
+--                 ditulis bila tinggi benar-benar berubah (memutus reaksi
+--                 berantai layout ↔ signal).
+--    (2) BATCHED: semua permintaan re-ukur digabung maksimal SATU pass
+--                 per frame (task.defer) untuk seluruh label.
+--  Tabel ber-key LEMAH (weak) → label yang di-:Destroy() otomatis ke-GC.
+local FitCache = setmetatable({}, { __mode = "k" })
+local FitQueue = setmetatable({}, { __mode = "k" })
+local fitIdle = true
+
 local function fitTextHeight(label, minH)
     local parent = label.Parent
     if not parent then
@@ -396,23 +466,50 @@ local function fitTextHeight(label, minH)
     -- lebar render label (semua teks fit ini lebar penuh: Scale X = 1 dari
     -- area konten parent = lebar parent - padding kiri/kanan)
     local w = math.max(parent.AbsoluteSize.X - pad, 60)
+    -- OPTIMASI v2.2.0: teks & lebar tidak berubah → skip GetTextSize
+    local c = FitCache[label]
+    if c and c.Text == label.Text and c.W == w and c.H == label.Size.Y.Offset then
+        return
+    end
     local bounds = TextService:GetTextSize(label.Text or "", label.TextSize, label.Font, Vector2.new(w, 10000))
-    label.Size = UDim2.new(1, 0, 0, math.max(minH or 14, math.ceil(bounds.Y) + 3))
+    local h = math.max(minH or 14, math.ceil(bounds.Y) + 3)
+    FitCache[label] = { Text = label.Text, W = w, H = h }
+    if label.Size.Y.Offset ~= h then
+        label.Size = UDim2.new(1, 0, 0, h)
+    end
+end
+
+local function scheduleFit(label, minH)
+    FitQueue[label] = minH
+    if fitIdle then
+        fitIdle = false
+        task.defer(function()
+            fitIdle = true
+            local queue = FitQueue
+            FitQueue = setmetatable({}, { __mode = "k" })
+            for l, mh in pairs(queue) do
+                if l.Parent then
+                    pcall(fitTextHeight, l, mh)
+                end
+            end
+        end)
+    end
 end
 
 --  Pasang pengukuran otomatis: hitung ulang saat teks berubah / lebar
 --  parent berubah (resize window, rotasi layar, pass layout pertama).
 --  Koneksi signal mati sendiri saat label / parent di-:Destroy() → aman memori.
 local function autoFitText(label, minH)
-    local function fit()
-        fitTextHeight(label, minH)
-    end
-    label:GetPropertyChangedSignal("Text"):Connect(fit)
+    label:GetPropertyChangedSignal("Text"):Connect(function()
+        scheduleFit(label, minH)
+    end)
     if label.Parent then
-        label.Parent:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
+        label.Parent:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+            scheduleFit(label, minH)
+        end)
     end
-    fit()
-    task.defer(fit) -- pastikan terukur ulang setelah pass layout pertama
+    fitTextHeight(label, minH)
+    scheduleFit(label, minH) -- re-cek sekali setelah pass layout pertama
 end
 
 local function decimalsOf(n)
@@ -956,7 +1053,7 @@ function ThorUi:SetToggleVisible(visible)
     end
 end
 
---// ────────────── SPLASH SCREEN (gaya Wind UI, tema Thor) ───────────────────
+--// ────────────────────────── SPLASH SCREEN (tema Thor) ─────────────────────────────
 --  Layar pembuka: logo ⚡ memantul + progress bar petir + status menggemas.
 --  playSplash(onDone) tidak memblokir; onDone dipanggil setelah fade-out.
 local function playSplash(onDone)
@@ -1341,7 +1438,7 @@ function TabClass:Remove()
     end
 end
 
---// ───────────── Elemen: keterangan/Description (ala Wind UI) ────────────
+--// ───────────── Elemen: keterangan/Description (modern) ────────────
 --  Teks kecil redup di bawah judul elemen. Dibuat SECARA MALAS (hanya saat
 --  ada isinya) supaya jarak antar-baris tidak berubah saat tidak dipakai.
 --  FIX v2.1.1: sebelumnya config Description diabaikan total → "keterangan
@@ -1439,7 +1536,7 @@ function TabClass:AddButton(cfg)
 end
 
 --// ─────────────────────────── Elemen: TOGGLE ───────────────────────────────
---  v2: switch ala Wind UI — track memanjang + knob bulat meluncur kilat.
+--  v2: switch modern — track memanjang + knob bulat meluncur kilat.
 function TabClass:AddToggle(cfg)
     cfg = cfg or {}
     local reg = Registry.new()
@@ -1485,7 +1582,7 @@ function TabClass:AddToggle(cfg)
     Corner(knob, UDim.new(1, 0))
     Stroke(knob, { Color = Theme.Background, Thickness = 1, Transparency = 0.4 })
 
-    -- keterangan kecil di bawah judul (ala Wind UI)
+    -- keterangan kecil di bawah judul
     local setDesc = attachDescription(card, 2)
     setDesc(cfg.Description)
 
@@ -1580,7 +1677,7 @@ function TabClass:AddSlider(cfg)
         Parent = row1,
     })
 
-    -- keterangan kecil di bawah judul (ala Wind UI)
+    -- keterangan kecil di bawah judul
     local setDesc = attachDescription(card, 2)
     setDesc(cfg.Description)
 
@@ -1795,7 +1892,7 @@ function TabClass:AddDropdown(cfg)
         Parent = header,
     })
 
-    -- keterangan kecil di bawah judul (ala Wind UI)
+    -- keterangan kecil di bawah judul
     local setDesc = attachDescription(card, 2)
     setDesc(cfg.Description)
 
@@ -2015,7 +2112,7 @@ function TabClass:AddTextInput(cfg)
         Parent = card,
     })
 
-    -- keterangan kecil di bawah judul (ala Wind UI)
+    -- keterangan kecil di bawah judul
     local setDesc = attachDescription(card, 2)
     setDesc(cfg.Description)
 
@@ -2114,7 +2211,7 @@ function TabClass:AddKeybind(cfg)
         Parent = row,
     })
 
-    -- keterangan kecil di bawah judul (ala Wind UI)
+    -- keterangan kecil di bawah judul
     local setDesc = attachDescription(card, 2)
     setDesc(cfg.Description)
 
@@ -2211,7 +2308,7 @@ function TabClass:AddKeybind(cfg)
 end
 
 --// ────────────────────────── Elemen: COLORPICKER (v2) ──────────────────────
---  Picker warna ala Wind UI: kotak Saturasi-Value + slider Hue + HEX/RGB.
+--  Picker warna modern: kotak Saturasi-Value + slider Hue + HEX/RGB.
 --  Semua elemen digambar murni script (UIGradient), tanpa aset gambar.
 function TabClass:AddColorPicker(cfg)
     cfg = cfg or {}
@@ -2272,7 +2369,7 @@ function TabClass:AddColorPicker(cfg)
     Corner(swatch, 6)
     local swatchStroke = Stroke(swatch, { Color = Theme.White, Thickness = 1, Transparency = 0.45 })
 
-    -- keterangan kecil di bawah judul (ala Wind UI)
+    -- keterangan kecil di bawah judul
     local setDesc = attachDescription(card, 2)
     setDesc(cfg.Description)
 
@@ -2551,7 +2648,7 @@ function TabClass:AddSection(cfg)
         LayoutOrder = 1,
         Parent = holder,
     })
-    -- keterangan kecil di bawah judul section (ala Wind UI)
+    -- keterangan kecil di bawah judul section
     local setDesc = attachDescription(holder, 2)
     setDesc(cfg.Description)
     local line = Create("Frame", {
@@ -2663,7 +2760,7 @@ function TabClass:AddParagraph(cfg)
 end
 
 --// ──────────────────────────────── Window ──────────────────────────────────
---  v2: layout ala Wind UI — sidebar vertikal (logo + tab ber-ikon + versi)
+--  v2: layout modern — sidebar vertikal (logo + tab ber-ikon + versi)
 --  di kiri, header dengan SEARCH BAR di kanan atas, konten scroll di bawah.
 local WindowClass = {}
 WindowClass.__index = WindowClass
@@ -2912,7 +3009,16 @@ function ThorUi:CreateWindow(cfg)
     }, WindowClass)
 
     reg:Connect(searchBox:GetPropertyChangedSignal("Text"), function()
-        self:_applySearch(searchBox.Text)
+        -- OPTIMASI v2.2.0: debounce 0.1s — filter per ketikan memicu
+        -- re-layout penuh seluruh elemen tab; kini digabung satu kali.
+        local text = searchBox.Text
+        self._searchTick = (self._searchTick or 0) + 1
+        local tick = self._searchTick
+        task.delay(0.1, function()
+            if self._searchTick == tick and self.Frame.Parent then
+                self:_applySearch(text)
+            end
+        end)
     end)
     reg:Connect(searchBox.Focused, function()
         Tween(reg, searchStroke, TI_HOVER, { Color = Theme.Accent, Transparency = 0 })
@@ -3114,7 +3220,7 @@ function ThorUi:CreateWindow(cfg)
         if dragging and gestureInput(dragInput, input) then
             local delta = input.Position - dragStart
             -- clamp: minimal 56px sisi window & 30px baris judul tetap
-            -- terlihat — window tidak bisa "hilang" ke luar layar (Wind-like)
+            -- terlihat — window tidak bisa "hilang" ke luar layar
             local vp = GetViewport()
             local size = frame.AbsoluteSize
             local center = Vector2.new(
@@ -3396,7 +3502,7 @@ function WindowClass:_applySearch(text)
     end
 end
 
---// ──────────────── CONFIRM DIALOG (modal ala Wind UI) ──────────────────────
+--// ──────────────── CONFIRM DIALOG (modal modern) ──────────────────────
 --  Window:Confirm({
 --      Title = "Hapus semua data?",
 --      Content = "Tindakan ini tidak bisa dibatalkan.",
@@ -3694,7 +3800,7 @@ return ThorUi
                 Size    = UDim2.new(0, 620, 0, 430),  -- kosongkan agar otomatis responsif mobile
                 MinSize = Vector2.new(400, 250),       -- batas minimal saat resize
                 Keybind = Enum.KeyCode.RightControl,  -- toggle buka/tutup UI (PC)
-                Splash = true,                        -- splash screen ala Wind UI (default: window pertama)
+                Splash = true,                        -- splash screen (default: window pertama)
                 -- ShowToggle = false,                 -- sembunyikan tombol ⚡ melayang
         })
 
@@ -3789,7 +3895,7 @@ return ThorUi
 
         Tab2:AddParagraph({
                 Title = "Tentang ThorUi v2",
-                Text = "Layout ala Wind UI dengan tema Dewa Petir: sidebar tab "
+                Text = "Layout modern dengan tema Dewa Petir: sidebar tab "
                         .. "ber-ikon, search bar untuk filter elemen, splash screen, "
                         .. "ColorPicker, dan Confirm dialog. Drag window dari logo/sidebar "
                         .. "atau header, resize dari sudut kanan bawah.",

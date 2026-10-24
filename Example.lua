@@ -18,7 +18,7 @@ local Window = ThorUi:CreateWindow({
         Size = UDim2.new(0, 620, 0, 430),  -- kosongkan agar otomatis responsif mobile
         MinSize = Vector2.new(400, 250),   -- batas minimal saat resize
         Keybind = Enum.KeyCode.RightControl, -- toggle buka/tutup UI (PC)
-        Splash = true,                      -- splash screen ala Wind UI (default: window pertama)
+        Splash = true,                      -- splash screen (default: window pertama)
         -- ShowToggle = false,              -- sembunyikan tombol ⚡ melayang
 })
 
@@ -110,7 +110,7 @@ Tab:AddButton({
 
 Tab2:AddParagraph({
         Title = "Tentang ThorUi v2",
-        Text = "Layout ala Wind UI dengan tema Dewa Petir: sidebar tab "
+        Text = "Layout modern dengan tema Dewa Petir: sidebar tab "
                 .. "ber-ikon, search bar untuk filter elemen, splash screen, "
                 .. "ColorPicker, dan Confirm dialog. Drag window dari logo/sidebar "
                 .. "atau header, resize dari sudut kanan bawah.",

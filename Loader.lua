@@ -93,7 +93,7 @@ Tab1:AddButton({
 
 local toggleRef = Tab1:AddToggle({
         Name = "Test Toggle",
-        Description = "Keterangan kecil ala Wind UI — muncul di bawah judul.",
+        Description = "Keterangan kecil di bawah judul elemen.",
         Default = false,
         Callback = function(value)
                 print("[TEST] Toggle =", value)
@@ -166,7 +166,7 @@ Tab1:AddButton({
         Callback = function()
                 Window:Confirm({
                         Title = "Hapus semua data?",
-                        Content = "Ini cuma test dialog ala Wind UI. Lanjutkan?",
+                        Content = "Ini cuma test dialog konfirmasi. Lanjutkan?",
                         ConfirmText = "Ya, lanjut",
                         CancelText = "Batal",
                         OnConfirm = function()
@@ -255,12 +255,12 @@ Tab3:AddParagraph({
 })
 
 Tab3:AddParagraph({
-        Title = "Yang Baru di v2 (gaya Wind UI)",
+        Title = "Yang Baru di v2",
         Text = "1) SPLASH SCREEN muncul saat load (logo ⚡ + progress bar).\n"
                 .. "2) SIDEBAR TAB ber-ikon di kiri (auto icon-only saat window sempit).\n"
                 .. "3) SEARCH BAR di atas: coba ketik 'toggle' atau 'slider' — elemen terfilter real-time.\n"
                 .. "4) COLORPICKER & CONFIRM DIALOG di tab Komponen.\n"
-                .. "5) Toggle sekarang berbentuk switch ala Wind UI.\n"
+                .. "5) Toggle sekarang berbentuk switch modern.\n"
                 .. "6) v2.1.0: FIX ikon ⚡ loncat-loncat saat digeser; window\n"
                 .. "   anti hilang dari layar; slider & tombol nyaman disentuh.\n"
                 .. "7) v2.1.1: SEMUA elemen menerima Description = 'teks kecil'\n"
@@ -291,7 +291,12 @@ Tab3:AddParagraph({
                 .. "    ColorPicker ternyata berkotak abu-abu default Roblox\n"
                 .. "    (RGB 163,162,165) karena label-nya tak diberi\n"
                 .. "    BackgroundTransparency. Kini SEMUA label nilai TRANSPARAN\n"
-                .. "    — teks emas/biru tema langsung di atas kartu navy.",
+                .. "    — teks emas/biru tema langsung di atas kartu navy.\n"
+                .. "12) v2.2.0: OPTIMASI PERFORMA — pengukur teks ber-cache +\n"
+                .. "    re-ukur digabung maksimal 1 pass per frame, tween otomatis\n"
+                .. "    keluar dari registry saat selesai, hover card hanya untuk\n"
+                .. "    perangkat bermouse, search debounce 0.1s. UI jauh lebih\n"
+                .. "    ringan & lancar (anti rendutan).",
 })
 
 Tab3:AddSection({ Name = "INFO" })

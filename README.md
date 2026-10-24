@@ -1,12 +1,12 @@
 # ⚡ ThorUi v2 — Roblox UI Library bertema Dewa Petir
 
 > UI library untuk Roblox dengan tema **Thor / Dewa Petir**: gelap, snappy, dan elektrik.
-> **v2.1.5: FIX "kotak abu-abu" di belakang nilai slider ("124 spd") & pilihan dropdown ("Mjolnir") — TextLabel tanpa `BackgroundTransparency` ternyata merender background default abu-abu Roblox; kini semua label nilai transparan, teks tema langsung di atas kartu navy** + v2.1.4 fix seluruh warna gradien kotor (UIGradient = TINT) + v2.1.3 fix error fatal `'Value' is not a valid member of UDim` + teks keterangan tidak ketimpa + Description ala Wind UI di semua elemen — sidebar tab, search bar, splash screen, ColorPicker, Confirm dialog.
+> **v2.2.0: OPTIMASI PERFORMA — UI dibikin seringan mungkin: pengukur teks ber-cache (`GetTextSize` hanya saat teks/lebar benar-benar berubah), re-ukur digabung maksimal 1 pass per frame, tween otomatis keluar dari registry saat selesai (dulu menumpuk ribuan entri mati), hover card hanya di perangkat bermouse, search debounce 0.1 detik + rebranding total (desain 100% original ThorUi)** + v2.1.5 hapus "kotak abu-abu" di belakang nilai slider/dropdown + v2.1.4 fix gradien kotor (UIGradient = TINT) + v2.1.3 fix error fatal `'Value' is not a valid member of UDim'` — sidebar tab, search bar, splash screen, ColorPicker, Confirm dialog.
 > Dukungan penuh **PC & Mobile** · Window *draggable* & *resizable* · **100% murni script** (tanpa Asset ID eksternal) · **Anti memory-leak**
 
 | | |
 |---|---|
-| **Versi** | 2.1.5 |
+| **Versi** | 2.2.0 |
 | **Tipe** | ModuleScript tunggal (Luau), tanpa dependensi |
 | **Platform** | PC (Mouse + Keyboard) & Mobile (Touch) |
 | **Aset** | `Instance.new` / `UICorner` / `UIStroke` / `UIGradient` saja — anti asset takedown |
@@ -15,14 +15,14 @@
 
 ## 🌩️ Fitur Unggulan
 
-### Baru di v2.0.0 (terinspirasi Wind UI)
+### Baru di v2.0.0 (tampilan modern)
 
 - **Splash screen** — layar pembuka dengan logo ⚡ memantul, progress bar petir, dan status menggemas ("Memanggil petir...", "Menempa Mjolnir..."). Muncul otomatis sekali per sesi, bisa dimatikan dengan `Splash = false`.
-- **Sidebar tab vertikal** — tab ber-ikon di sisi kiri ala Wind UI, dengan indikator petir yang "menyambar" saat tab aktif. Saat window sempit (< 520px), sidebar otomatis menyusut jadi icon-only.
+- **Sidebar tab vertikal** — tab ber-ikon di sisi kiri, dengan indikator petir yang "menyambar" saat tab aktif. Saat window sempit (< 520px), sidebar otomatis menyusut jadi icon-only.
 - **Search bar** — kotak pencarian di header yang memfilter elemen tab aktif secara real-time. Ketik "toggle" → hanya elemen bernama toggle yang tampil.
 - **ColorPicker** — picker warna lengkap: kotak Saturasi-Value + slider Hue pelangi + tampilan HEX/RGB, semuanya digambar murni dengan `UIGradient` (tanpa aset gambar).
 - **Confirm dialog** — modal konfirmasi overlay dengan animasi pop + fade; klik area gelap = batal.
-- **Toggle switch** — toggle didesain ulang jadi switch ala Wind UI: track memanjang + knob bulat meluncur dengan easing Back.
+- **Toggle switch** — toggle didesain ulang jadi switch modern: track memanjang + knob bulat meluncur dengan easing Back.
 
 ### Perbaikan di v2.0.1
 
@@ -34,7 +34,7 @@
 ### Perbaikan di v2.1.0 (audit input menyeluruh)
 
 - **FIX ikon ⚡ "loncat-loncat"** — akar masalahnya: posisi awal gesture dihitung dari objek `InputObject` yang **terus termutasi** di touch, sehingga delta selalu 0 — ikon tidak bergeser dan lepas jari malah memicu toggle window. Kini posisi di-*snapshot* sebagai nilai (`Vector3`/`Vector2`) → drag presisi & mulus di mouse maupun jari, anchor ikon tidak pernah diubah saat drag.
-- **Window anti-hilang** — drag window kini di-*clamp*: minimal 56px sisi window dan 30px baris judul selalu tetap terlihat di layar, jadi window tidak bisa tersesat ke luar layar (ala Wind UI).
+- **Window anti-hilang** — drag window kini di-*clamp*: minimal 56px sisi window dan 30px baris judul selalu tetap terlihat di layar, jadi window tidak bisa tersesat ke luar layar.
 - **Tap beruntun makin responsif** — `Show`/`Hide`/`Toggle` kini pakai flag `_closing`: tap ⚡ saat window sedang menutup langsung membatalkan hide dan memunculkan kembali (dulu tap "tertelan").
 - **Slider mobile-friendly** — baris slider ditinggikan 28px + *hit-area* transparan menutupi seluruh baris: tidak perlu membidik track 6px dengan jari; tap di mana pun pada baris langsung mengatur nilai.
 - **Target sentuh lebih besar** — tombol kontrol header (—/✕) 28→32px, handle resize 28→34px, ukuran font ikon kontrol 14→16.
@@ -43,7 +43,7 @@
 
 ### Perbaikan di v2.1.1 (audit tata letak + keterangan elemen)
 
-- **Description ala Wind UI di SEMUA elemen** — sebelumnya config `Description` diabaikan total ("keterangan slider dll tidak kelihatan"). Kini setiap elemen (Button, Toggle, Slider, Dropdown, TextInput, Keybind, ColorPicker, Section) menerima `cfg.Description` → teks keterangan kecil terbaca di bawah judul, otomatis membungkus teks panjang, dan bisa diubah kapan pun lewat `Element:SetDescription("teks")`.
+- **Description di SEMUA elemen** — sebelumnya config `Description` diabaikan total ("keterangan slider dll tidak kelihatan"). Kini setiap elemen (Button, Toggle, Slider, Dropdown, TextInput, Keybind, ColorPicker, Section) menerima `cfg.Description` → teks keterangan kecil terbaca di bawah judul, otomatis membungkus teks panjang, dan bisa diubah kapan pun lewat `Element:SetDescription("teks")`.
 - **FIX ikon ⚡ loncat setiap kali diklik** — akar masalah: posisi awal gesture dibaca dari `AbsolutePosition` lalu ditulis ke `Position`; di sebagian lingkungan (CoreGui/executor/DPI mobile) keduanya berbeda basis koordinat → ikon melompat dulu baru bisa digeser. Kini konversinya meniru formula engine sendiri (`Scale × ukuran parent + Offset`) → identitas visual terjamin, **nol loncatan saat ditekan**. Anchor ikon dipindah ke pusat (0.5, 0.5) sehingga animasi pop & efek "digenggam" menyala simetris dari tengah (dulu membesar ke kanan-bawah, terlihat seperti terloncat).
 - **FIX snapshot (0,0)** — sebagian executor melaporkan `InputBegan` sentuhan di (0,0) yang membuat ikon melayang lintas layar; snapshot mencurigakan kini otomatis diambil ulang dari gerakan pertama.
 - **FIX tombol minimize "—" tidak pada tempatnya** — tepi kanan search bar dikurangi agar tidak menimpa area tombol kontrol; tombol `—` dan `✕` kini berdampingan rapi di ujung kanan header.
@@ -51,6 +51,15 @@
 - **FIX ColorPicker slider hue via sentuhan** — dulu slider hue hanya bisa digeser mouse; kini jari juga bisa (filter gesture source-lock).
 - **Gesture source-lock menyeluruh** — drag window, resize, slider, dan ikon ⚡ mengunci sumber input saat gesture dimulai: di perangkat *hybrid* (PC layar sentuh / tablet + mouse) posisi mouse yang menetap tidak lagi bikin UI meloncat; jari kedua tidak mengganggu drag yang sedang berjalan.
 - **Sentuhan mobile makin nyaman** — nilai slider tidak terpotong (`TextTruncate`), baris opsi dropdown 24→28px, kartu Confirm dialog auto-fit di layar sempit.
+
+### Optimasi di v2.2.0 (performa — dari laporan: "masih terasa berat, banyak rendutan")
+
+- **Pengukur teks ber-cache** — sumber "rendutan" utama: sejak v2.1.2 setiap label keterangan/paragraf/notifikasi terhubung ke sinyal `AbsoluteSize` parent, sehingga **resize window / rotasi layar memicu `GetTextSize` per label per frame** untuk semua elemen, lalu penulisan `Size` memicu re-layout berantai (card `AutomaticSize.Y` → holder → `ScrollingFrame` `AutomaticCanvasSize`). Kini pengukuran **ber-cache**: teks & lebar tidak berubah = nol ukur ulang, dan `Size` hanya ditulis bila tinggi benar-benar berubah (memutus reaksi berantai layout ↔ signal).
+- **Re-ukur terjadwal (batched)** — semua permintaan pengukuran ulang digabungkan maksimal **satu pass per frame** untuk seluruh label (`task.defer`), bukan per-label-per-frame seperti sebelumnya.
+- **Registry otomatis bersih** — dulu setiap `Tween()` (hover, kilat Zap, animasi) menempel di daftar registry **sampai window dihancurkan** — sesi panjang menumpuk ribuan tween mati (memori bengkak + `Destroy()`/`:Remove()` makin lambat). Kini tween **otomatis keluar dari daftar begitu selesai** (`Completed` — termasuk saat `:Cancel()`), dan `Clean()` memproses snapshot daftar agar aman dari mutasi-tengah-iterasi.
+- **Hover hemat di mobile** — efek hover card hanya dipasang di perangkat **bermouse**. Di layar sentuh, setiap ketukan ikut memicu `MouseEnter`/`MouseLeave` → 2-4 tween percuma per tap; kini nol. Umpan balik sentuh tetap terasa: kilat Zap, animasi switch/knob, splash tombol.
+- **Search debounce 0.1s** — filter elemen saat mengetik dulu memicu re-layout penuh seluruh elemen tab **tiap huruf**; kini digabung satu kali per 0.1 detik.
+- **Rebranding total** — semua referensi library eksternal dihapus dari kode, README, Loader, dan Example; desain, layout & tema **100% original ThorUi**.
 
 ### Perbaikan di v2.1.5 (hapus "kotak abu-abu" nilai slider & dropdown)
 
@@ -207,7 +216,7 @@ Contoh implementasi **lengkap** (semua komponen) tersedia di [`Example.lua`](Exa
 Semua komponen mengembalikan objek `Element` dengan method seragam:
 **`Element:Set(...)`** (set nilai; param kedua `false` = tanpa memicu callback), **`Element:Get()`** (ambil nilai), **`Element:SetDescription(teks)`** (ubah keterangan di bawah judul), **`Element:Remove()`** (hapus elemen dari UI).
 
-Semua komponen juga menerima **`Description`** (string opsional) — teks keterangan kecil yang tampil di bawah judul elemen, ala Wind UI:
+Semua komponen juga menerima **`Description`** (string opsional) — teks keterangan kecil yang tampil di bawah judul elemen:
 
 ```lua
 Tab:AddSlider({
