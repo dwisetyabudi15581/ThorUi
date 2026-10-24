@@ -1,12 +1,12 @@
 # ⚡ ThorUi v2 — Roblox UI Library bertema Dewa Petir
 
 > UI library untuk Roblox dengan tema **Thor / Dewa Petir**: gelap, snappy, dan elektrik.
-> **v2.1.1: Layout & UX terinspirasi Wind UI + Description ala Wind UI di semua elemen** — sidebar tab, search bar, splash screen, ColorPicker, Confirm dialog.
+> **v2.1.2: FIX teks keterangan/paragraf yang ketimpa elemen di bawahnya (di sebagian perangkat) + Description ala Wind UI di semua elemen** — sidebar tab, search bar, splash screen, ColorPicker, Confirm dialog.
 > Dukungan penuh **PC & Mobile** · Window *draggable* & *resizable* · **100% murni script** (tanpa Asset ID eksternal) · **Anti memory-leak**
 
 | | |
 |---|---|
-| **Versi** | 2.1.1 |
+| **Versi** | 2.1.2 |
 | **Tipe** | ModuleScript tunggal (Luau), tanpa dependensi |
 | **Platform** | PC (Mouse + Keyboard) & Mobile (Touch) |
 | **Aset** | `Instance.new` / `UICorner` / `UIStroke` / `UIGradient` saja — anti asset takedown |
@@ -51,6 +51,13 @@
 - **FIX ColorPicker slider hue via sentuhan** — dulu slider hue hanya bisa digeser mouse; kini jari juga bisa (filter gesture source-lock).
 - **Gesture source-lock menyeluruh** — drag window, resize, slider, dan ikon ⚡ mengunci sumber input saat gesture dimulai: di perangkat *hybrid* (PC layar sentuh / tablet + mouse) posisi mouse yang menetap tidak lagi bikin UI meloncat; jari kedua tidak mengganggu drag yang sedang berjalan.
 - **Sentuhan mobile makin nyaman** — nilai slider tidak terpotong (`TextTruncate`), baris opsi dropdown 24→28px, kartu Confirm dialog auto-fit di layar sempit.
+
+### Perbaikan di v2.1.2 (fix teks ketimpa — dari laporan screenshot)
+
+- **FIX keterangan tertimpa track slider** — di sebagian perangkat (layar DPI tinggi / executor / `AutomaticSize` bersarang), pola `TextLabel TextWrapped + AutomaticSize.Y` memesan tinggi **lebih kecil** dari render teks asli → baris berikutnya (track slider, box input, tombol) **menimpa separuh bawah teks keterangan** (gejala: "keterangan slider ... (16 - 200) tidak kelihatan gara-gara ketimpa"). Kini tinggi SEMUA teks wrapped diukur **sinkron** via `TextService:GetTextSize` dengan lebar render sesungguhnya, lalu dipasang sebagai `Size` eksplisit — `UIListLayout` selalu memesan ruang yang pas dan tidak ada lagi ketimpa.
+- **Cakupan menyeluruh** — perbaikan ini berlaku untuk: Description di semua elemen (Button, Toggle, Slider, Dropdown, TextInput, Keybind, ColorPicker, Section), `AddLabel`, `AddParagraph`, isi notifikasi (`Notify`), dan pesan `Confirm` dialog (dulu baris tombol bisa menimpa pesan).
+- **Auto re-ukur** — tinggi teks dihitung ulang otomatis saat teks diubah (`SetText` / `SetDescription`), window di-*resize*, atau layar dirotasi — selalu pas di semua ukuran.
+- **Aman memori** — koneksi re-ukur dipasang pada signal milik elemen itu sendiri, otomatis terputus saat elemen di-`Remove()`/window di-`Destroy()` (tetap patuh pola Registry anti memory-leak).
 
 ### Fitur inti
 

@@ -1,8 +1,8 @@
 --════════════════════════════════════════════════════════════════════════════
---  ⚡  ThorUi v2.1.1 — Roblox UI Library bertema Dewa Petir (Thor / Petir)
+--  ⚡  ThorUi v2.1.2 — Roblox UI Library bertema Dewa Petir (Thor / Petir)
 --      Layout & UX terinspirasi Wind UI · tema tetap 100% Thor ⚡
 --  ──────────────────────────────────────────────────────────────────────────
---  Versi     : 2.1.1 (ModuleScript tunggal, tanpa dependensi eksternal)
+--  Versi     : 2.1.2 (ModuleScript tunggal, tanpa dependensi eksternal)
 --  Platform  : PC & Mobile — draggable, resizable, cross-platform
 --
 --  BARU DI v2.0.0 (gaya Wind UI)
@@ -37,6 +37,18 @@
 --                         juga sudah source-lock & multi-touch aman
 --  • FIX slider          : nilai (angka + suffix) tidak terpotong
 --  • Confirm dialog      : lebar kartu auto-fit di layar sempit (mobile)
+--
+--  FIX DI v2.1.2 (dari screenshot user: keterangan slider tertimpa track)
+--  • FIX ketimpa teks    : SEMUA teks panjang/wrapped (Description semua
+--                         elemen, Label, Paragraph, isi notifikasi, pesan
+--                         Confirm) kini diukur tingginya secara SINKRON
+--                         (TextService:GetTextSize) → Size eksplisit.
+--                         Dulu AutomaticSize.Y di sebagian perangkat (DPI
+--                         tinggi / executor) memesan tinggi lebih kecil
+--                         dari render asli → track slider / tombol / box
+--                         input MENIMPA separuh bawah teks keterangan
+--  • Re-ukur otomatis    : tinggi teks dihitung ulang saat teks berubah /
+--                         window di-resize / layar dirotasi — selalu pas
 --
 --  FITUR LANJUTAN
 --  • Tema Lightning & Thunder : Midnight Blue + Electric Blue / Lightning Gold
@@ -88,12 +100,13 @@ local TweenService     = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService       = game:GetService("RunService")
 local Players          = game:GetService("Players")
+local TextService      = game:GetService("TextService")
 
 local LocalPlayer = Players.LocalPlayer
 
 --// ─────────────────────────────── Library ──────────────────────────────────
 local ThorUi = {
-    Version = "2.1.1",
+    Version = "2.1.2",
 }
 
 --// ──────────────────────────────── Tema ────────────────────────────────────
@@ -300,6 +313,50 @@ local function gestureEnded(startInput, input)
         return input == startInput
     end
     return input.UserInputType == Enum.UserInputType.MouseButton1
+end
+
+--// ── FIX v2.1.2: pengukuran tinggi teks SINKRON (anti ketimpa teks) ─────
+--  Pola "TextLabel TextWrapped + AutomaticSize.Y" TIDAK AKURAT di sebagian
+--  perangkat (layar DPI tinggi / executor / AutomaticSize bersarang dalam
+--  kartu yang juga automatic): tinggi yang dipesan untuk UIListLayout LEBIH
+--  KECIL dari tinggi render teks → baris setelahnya (track slider, box
+--  input, tombol, garis section) MENIMPA separuh bawah teks keterangan.
+--  (Gejala dari screenshot user: keterangan slider "...karakter (16 - 200)"
+--  terpotong track slider.) Solusi: ukur tinggi teks secara EKSPLISIT via
+--  TextService:GetTextSize — sinkron, memakai lebar render sesungguhnya —
+--  lalu set Size eksplisit. UIListLayout selalu memesan ruang yang PAS.
+local function fitTextHeight(label, minH)
+    local parent = label.Parent
+    if not parent then
+        return
+    end
+    local pad = 0
+    for _, ch in ipairs(parent:GetChildren()) do
+        if ch:IsA("UIPadding") then
+            pad = ch.PaddingLeft.Value + ch.PaddingRight.Value
+            break
+        end
+    end
+    -- lebar render label (semua teks fit ini lebar penuh: Scale X = 1 dari
+    -- area konten parent = lebar parent - padding kiri/kanan)
+    local w = math.max(parent.AbsoluteSize.X - pad, 60)
+    local bounds = TextService:GetTextSize(label.Text or "", label.TextSize, label.Font, Vector2.new(w, 10000))
+    label.Size = UDim2.new(1, 0, 0, math.max(minH or 14, math.ceil(bounds.Y) + 3))
+end
+
+--  Pasang pengukuran otomatis: hitung ulang saat teks berubah / lebar
+--  parent berubah (resize window, rotasi layar, pass layout pertama).
+--  Koneksi signal mati sendiri saat label / parent di-:Destroy() → aman memori.
+local function autoFitText(label, minH)
+    local function fit()
+        fitTextHeight(label, minH)
+    end
+    label:GetPropertyChangedSignal("Text"):Connect(fit)
+    if label.Parent then
+        label.Parent:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
+    end
+    fit()
+    task.defer(fit) -- pastikan terukur ulang setelah pass layout pertama
 end
 
 local function decimalsOf(n)
@@ -546,10 +603,12 @@ function ThorUi:Notify(cfg)
         TextTruncate = Enum.TextTruncate.AtEnd,
         Parent = row1,
     })
-    Create("TextLabel", {
+    local contentLabel = Create("TextLabel", {
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 0),
-        AutomaticSize = Enum.AutomaticSize.Y,
+        Size = UDim2.new(1, 0, 0, 14),
+        -- FIX v2.1.2: tinggi eksplisit terukur (autoFitText) — bukan
+        -- AutomaticSize.Y yang bisa memesan tinggi kurang dari teks →
+        -- teks notifikasi terpotong di dasar kartu
         Text = cfg.Content or "",
         Font = Theme.FontMain,
         TextSize = 12,
@@ -560,6 +619,7 @@ function ThorUi:Notify(cfg)
         LayoutOrder = 2,
         Parent = inner,
     })
+    autoFitText(contentLabel, 0)
 
     local entry = { Container = container, Notif = notif, Dead = false, Task = nil }
     table.insert(_state.Notifs, entry)
@@ -1224,7 +1284,12 @@ end
 --  Teks kecil redup di bawah judul elemen. Dibuat SECARA MALAS (hanya saat
 --  ada isinya) supaya jarak antar-baris tidak berubah saat tidak dipakai.
 --  FIX v2.1.1: sebelumnya config Description diabaikan total → "keterangan
---  slider dll tidak kelihatan". Pemakaian:
+--  slider dll tidak kelihatan".
+--  FIX v2.1.2 (dari screenshot user): tinggi keterangan kini DIUKUR SINKRON
+--  (autoFitText → TextService:GetTextSize → Size eksplisit). Dulu memakai
+--  AutomaticSize.Y yang di sebagian perangkat memesan tinggi lebih kecil
+--  dari render → baris setelahnya (track slider, box input, garis section)
+--  MENIMPA separuh bawah teks keterangan. Pemakaian:
 --      local setDesc = attachDescription(card, 2)  -- urutan setelah judul
 --      setDesc(cfg.Description)                     -- boleh nil/kosong
 --      setDesc("teks baru")                         -- dipanggil ulang kapan pun
@@ -1240,8 +1305,7 @@ local function attachDescription(card, order)
         if not label then
             label = Create("TextLabel", {
                 BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, 0),
-                AutomaticSize = Enum.AutomaticSize.Y,
+                Size = UDim2.new(1, 0, 0, 14),
                 Font = Theme.FontMain,
                 TextSize = 12, -- cukup besar untuk dibaca di mobile, tetap halus
                 TextColor3 = Theme.TextDim,
@@ -1251,6 +1315,9 @@ local function attachDescription(card, order)
                 LayoutOrder = order,
                 Parent = card,
             })
+            -- FIX v2.1.2: ukur tinggi teks eksplisit + re-ukur saat teks /
+            -- lebar kartu berubah — keterangan TIDAK PERNAH lagi tertimpa
+            autoFitText(label, 14)
         end
         label.Visible = true
         label.Text = tostring(text)
@@ -2443,8 +2510,10 @@ function TabClass:AddLabel(cfg)
     cfg = cfg or {}
     local lbl = Create("TextLabel", {
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 0),
-        AutomaticSize = Enum.AutomaticSize.Y,
+        Size = UDim2.new(1, 0, 0, 14),
+        -- FIX v2.1.2: tinggi eksplisit terukur (autoFitText) — bukan
+        -- AutomaticSize.Y yang bisa memesan tinggi kurang dari teks →
+        -- elemen berikutnya menimpa teks Label
         Text = cfg.Text or cfg.Name or "Label",
         Font = Theme.FontMain,
         TextSize = 12,
@@ -2454,6 +2523,7 @@ function TabClass:AddLabel(cfg)
         LayoutOrder = self:_nextOrder(),
         Parent = self.Container,
     })
+    autoFitText(lbl, 0)
     local el = { Type = "Label", Instance = lbl }
     el.SetText = function(text) -- dipanggil: el.SetText("teks baru")
         lbl.Text = tostring(text)
@@ -2495,8 +2565,10 @@ function TabClass:AddParagraph(cfg)
     })
     local body = Create("TextLabel", {
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 0),
-        AutomaticSize = Enum.AutomaticSize.Y,
+        Size = UDim2.new(1, 0, 0, 14),
+        -- FIX v2.1.2: tinggi eksplisit terukur (autoFitText) — bukan
+        -- AutomaticSize.Y (dapat memesan tinggi kurang dari teks →
+        -- teks paragraph tumpah keluar kartu / tertimpa elemen bawahnya)
         Text = cfg.Text or "",
         Font = Theme.FontMain,
         TextSize = 12,
@@ -2507,6 +2579,7 @@ function TabClass:AddParagraph(cfg)
         LayoutOrder = 2,
         Parent = holder,
     })
+    autoFitText(body, 0)
     local el = { Type = "Paragraph", Instance = holder }
     el.SetText = function(text) -- dipanggil: el.SetText("teks baru")
         body.Text = tostring(text)
@@ -3338,10 +3411,11 @@ function WindowClass:Confirm(cfg)
         LayoutOrder = 1,
         Parent = inner,
     })
-    Create("TextLabel", {
+    local msgLabel = Create("TextLabel", {
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 0),
-        AutomaticSize = Enum.AutomaticSize.Y,
+        Size = UDim2.new(1, 0, 0, 14),
+        -- FIX v2.1.2: tinggi eksplisit terukur — dulu AutomaticSize.Y bisa
+        -- memesan tinggi kurang dari teks → baris TOMBOL menimpa pesan
         Text = cfg.Content or "",
         Font = Theme.FontMain,
         TextSize = 12,
@@ -3352,6 +3426,7 @@ function WindowClass:Confirm(cfg)
         LayoutOrder = 2,
         Parent = inner,
     })
+    autoFitText(msgLabel, 0)
 
     -- baris tombol: Batal | Konfirmasi
     local btnRow = Create("Frame", {

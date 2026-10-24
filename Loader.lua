@@ -268,7 +268,13 @@ Tab3:AddParagraph({
                 .. "   Komponen) + FIX ikon ⚡ yang loncat saat baru diklik:\n"
                 .. "   kini nol loncatan — ketuk langsung responsif, pop animasi\n"
                 .. "   menyala simetris dari tengah; tombol minimize & posisi\n"
-                .. "   ikon tab rapi di semua ukuran layar.",
+                .. "   ikon tab rapi di semua ukuran layar.\n"
+                .. "8) v2.1.2: FIX keterangan/teks panjang KETIMPA (track slider\n"
+                .. "   menimpa separuh bawah teks keterangan di sebagian HP) —\n"
+                .. "   tinggi teks kini diukur sinkron (GetTextSize) lalu dipasang\n"
+                .. "   eksplisit: keterangan, Label, Paragraph, isi notifikasi,\n"
+                .. "   dan pesan Confirm SELALU utuh terbaca + auto re-ukur saat\n"
+                .. "   window di-resize / layar dirotasi.",
 })
 
 Tab3:AddSection({ Name = "INFO" })
