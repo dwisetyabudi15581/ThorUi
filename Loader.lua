@@ -63,10 +63,15 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
 local Window = ThorUi:CreateWindow({
-        Title = "ThorUi Test ⚡",
+        Title = "ThorHub ⚡",
         MinSize = Vector2.new(400, 250),
         Keybind = Enum.KeyCode.RightControl, -- tekan RightControl untuk show/hide
 })
+
+-- (Opsional, v2.3.1) pengguna library bisa memasang LOGO SENDIRI — panggil
+-- SEBELUM CreateWindow agar berlaku ke splash + tombol melayang juga:
+-- ThorUi:SetLogo({ Image = "rbxassetid://123456789", Size = 26 })
+-- atau per-window: ThorUi:CreateWindow({ Logo = { Image = "..." } })
 
 -- ═══ TAB 1: Komponen dasar ═══
 local Tab1 = Window:CreateTab({ Name = "Komponen", Icon = "⚡" })
@@ -435,12 +440,12 @@ Tab3:AddParagraph({
         Title = "Cara Test Window",
         Text = "1) DRAG title bar dengan mouse/jari — kini BEBAS TANPA batas:\n"
                 .. "   window boleh dibawa keluar layar kiri/kanan/atas/bawah!\n"
-                .. "   Jika 'hilang': ketuk tombol ⚡ (window tertutup) lalu ketuk\n"
-                .. "   ⚡ lagi — window otomatis ditarik balik ke dalam layar.\n"
+                .. "   Jika 'hilang': ketuk tombol LOGO PALU (window tertutup)\n"
+                .. "   lalu ketuk lagi — window otomatis ditarik balik ke layar.\n"
                 .. "2) RESIZE dari handle sudut kanan-bawah (min 400x250).\n"
                 .. "3) Klik tab untuk ganti konten (perhatikan underline kilat).\n"
                 .. "4) PC: tekan RightControl untuk show/hide.\n"
-                .. "5) Mobile: GESER tombol ⚡ melayang ke mana saja — bebas!\n"
+                .. "5) Mobile: GESER tombol LOGO melayang ke mana saja — bebas!\n"
                 .. "   (tetap di posisi terakhir; ketuk = buka/tutup UI)\n"
                 .. "6) Minimize (tombol —) → muncul tombol + di sidebar\n"
                 .. "   untuk membesarkan window kembali.\n"
@@ -458,7 +463,7 @@ Tab3:AddParagraph({
 
 Tab3:AddParagraph({
         Title = "Yang Baru di v2",
-        Text = "1) SPLASH SCREEN muncul saat load (logo ⚡ + progress bar).\n"
+        Text = "1) SPLASH SCREEN muncul saat load (logo palu ThorHub + progress bar).\n"
                 .. "2) SIDEBAR TAB ber-ikon di kiri (auto icon-only saat window sempit).\n"
                 .. "3) SEARCH BAR di atas: coba ketik 'toggle' atau 'slider' — elemen terfilter real-time.\n"
                 .. "4) COLORPICKER & CONFIRM DIALOG di tab Komponen.\n"
@@ -528,7 +533,14 @@ Tab3:AddParagraph({
                 .. "    eksak), DROPDOWN Search+Apply+opsi runtime, LIST\n"
                 .. "    browser item, MODELVIEW etalase 3D (palu petir\n"
                 .. "    bawaan murni Part), CANVAS dashboard, GROUP radio,\n"
-                .. "    dan QUICK ACTION melayang di pinggir layar.",
+                .. "    dan QUICK ACTION melayang di pinggir layar.\n"
+                .. "17) v2.3.1: LOGO THORHUB — palu Mjolnir (kepala emas +\n"
+                .. "    gagang biru) menggantikan logo ⚡ di splash, sidebar &\n"
+                .. "    tombol melayang; digambar murni dari geometri sehingga\n"
+                .. "    NOL Asset ID + dijamin tampil di semua perangkat.\n"
+                .. "    Pengguna library bisa memasang logo sendiri:\n"
+                .. "    ThorUi:SetLogo({ Image = 'rbxassetid://...', Size = 26 })\n"
+                .. "    atau per-window: CreateWindow({ Logo = {...} }).",
 })
 
 Tab3:AddSection({ Name = "INFO" })
@@ -537,11 +549,11 @@ Tab3:AddLabel({ Text = "Repo: github.com/dwisetyabudi15581/ThorUi" })
 Tab3:AddLabel({ Text = "Output lengkap di console (F9): cari [TEST]" })
 
 --// ─── 4. Sinyal sukses ──────────────────────────────────────────────────────
-print("[ThorUi Loader] 🎉 Demo v2.3 siap! Cek tab BARU 'v2.3 Fitur': State binding, Depends, sub-row AddChild, slider multi-satuan, dropdown search+apply, List, ModelView 3D, Canvas, grup radio, quick action. Plus: drag bebas, section terlipat, splash, search bar.")
+print("[ThorUi Loader] 🎉 Demo v2.3.1 siap! Logo baru: palu ThorHub di splash, sidebar & tombol melayang. Cek tab 'v2.3 Fitur': State binding, Depends, sub-row AddChild, slider multi-satuan, dropdown search+apply, List, ModelView 3D, Canvas, grup radio, quick action. Plus: drag bebas, section terlipat, splash, search bar.")
 print("[ThorUi Loader] Ctrl+M = console. RightControl = show/hide UI.")
 
 ThorUi:Notify({
-        Title = "⚡ ThorUi v2.3 siap!",
+        Title = "⚡ ThorHub v2.3.1 siap!",
         Content = "Cek 4 tab: Komponen, Kontrol, v2.3 Fitur, Checklist.",
         Duration = 5,
 })

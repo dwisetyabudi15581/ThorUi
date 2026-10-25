@@ -13,13 +13,18 @@ local ThorUi = require(ReplicatedStorage:WaitForChild("ThorUi"))
 -- ThorUi:SetTheme({ Accent = Color3.fromRGB(170, 90, 255), AccentGold = Color3.fromRGB(255, 200, 60) })
 -- (cara lama tetap bisa: ThorUi.Theme.Accent = ...)
 
+-- (Opsional, v2.3.1) pasang LOGO SENDIRI — menggantikan palu ThorHub
+-- bawaan; berlaku di splash + sidebar + tombol melayang. Panggil SEBELUM
+-- CreateWindow, atau per-window: CreateWindow({ Logo = { ... } }):
+-- ThorUi:SetLogo({ Image = "rbxassetid://123456789", Size = 26 })
+
 local Window = ThorUi:CreateWindow({
-        Title = "ThorUi ⚡",
+        Title = "ThorHub ⚡",
         Size = UDim2.new(0, 440, 0, 390),  -- v2.2.3: default rada persegu; kosongkan agar otomatis responsif + SELALU muat di layar
         MinSize = Vector2.new(400, 250),   -- batas minimal saat resize
         Keybind = Enum.KeyCode.RightControl, -- toggle buka/tutup UI (PC)
         Splash = true,                      -- splash screen (default: window pertama)
-        -- ShowToggle = false,              -- sembunyikan tombol ⚡ melayang
+        -- ShowToggle = false,              -- sembunyikan tombol logo melayang
 })
 
 local Tab = Window:CreateTab({ Name = "Main", Icon = "⚡" })
@@ -251,7 +256,7 @@ ThorUi:AddQuickAction({
 })
 
 Tab2:AddParagraph({
-        Title = "Tentang ThorUi v2.3",
+        Title = "Tentang ThorHub v2.3",
         Text = "UI library Dewa Petir: sidebar tab ber-ikon, search bar, "
                 .. "splash screen, ColorPicker, Confirm dialog, section yang "
                 .. "bisa di-minimize — plus v2.3.0: state binding antar-elemen, "

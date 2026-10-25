@@ -1,8 +1,8 @@
 --════════════════════════════════════════════════════════════════════════════
---  ⚡  ThorUi v2.2.1 — Roblox UI Library bertema Dewa Petir (Thor / Petir)
+--  ⚡  ThorUi v2.3.1 — Roblox UI Library bertema Dewa Petir (Thor / Petir)
 --      Desain, layout & tema 100% original ThorUi ⚡
 --  ──────────────────────────────────────────────────────────────────────────
---  Versi     : 2.2.1 (ModuleScript tunggal, tanpa dependensi eksternal)
+--  Versi     : 2.3.1 (ModuleScript tunggal, tanpa dependensi eksternal)
 --  Platform  : PC & Mobile — draggable, resizable, cross-platform
 --
 --  BARU DI v2.0.0 (tampilan modern)
@@ -217,6 +217,27 @@
 --                          default 440px tetap menampilkan NAMA tab;
 --                          hanya layar benar2 sempit (hp) yang icon-only
 --
+--  BARU DI v2.3.1 (permintaan user: "ganti logonya ambil dari repo ThorHub")
+--  • LOGO THORHUB       : logo ⚡ resmi diganti PALU MJOLNIR — identitas
+--                          ThorHub (kepala emas ber-gradien + 2 paku keling
+--                          + gagang biru ber-gradien + kilau). Digambar MURNI
+--                          dari Frame (pola ChevronIcon): tanpa font & tanpa
+--                          Asset ID → DIJAMIN tampil identik di semua
+--                          perangkat (glyph ⚡ lama bergantung pada font
+--                          perangkat & sering "melayang" dari garis dasar).
+--                          Terpasang di 3 titik brand: lingkaran SPLASH,
+--                          baris LOGO SIDEBAR (auto ke tengah saat sidebar
+--                          icon-only), dan TOMBOL MELAYANG toggle window
+--  • LOGO BISA DIGANTI  : pengguna library bisa memasang logo sendiri —
+--                          ThorUi:SetLogo({ Image = "rbxassetid://...",
+--                          Size = 26 }) SEBELUM CreateWindow, atau per-window
+--                          via CreateWindow({ Logo = { Image, Size } }).
+--                          Tanpa itu → palu ThorHub bawaan (tetap nol aset)
+--  • Brand "ThorHub"    : judul default splash & sidebar kini "ThorHub"
+--                          (tetap bisa dioverride lewat Title)
+--  • Mjolnir 3D senada  : palu bawaan AddModelView dicat ulang persis
+--                          logo — kepala emas + gagang biru
+--
 --  FITUR LANJUTAN
 --  • Tema Lightning & Thunder : Midnight Blue + Electric Blue / Lightning Gold
 --  • Animasi snappy ala kilat : TweenService (Back / Quart / Quad, cepat)
@@ -225,7 +246,8 @@
 --                               tanpa batas layar (v2.2.2; pulih otomatis di Show())
 --  • Window resizable         : drag-handle di sudut kanan-bawah window
 --  • UISizeConstraint         : ukuran minimal (default 400 x 250)
---  • Floating toggle ⚡        : bisa digeser BEBAS ke mana pun (di-clamp ke layar)
+--  • Floating toggle (logo)   : tombol palu ThorHub — bisa digeser BEBAS ke
+--                               mana pun (di-clamp ke layar)
 --  • Keybind toggle UI        : default RightControl (bisa diganti)
 --  • Konten ScrollingFrame    : AutomaticCanvasSize (elemen tak terbatas)
 --  • 100% murni script        : Instance.new / UICorner / UIStroke — tanpa
@@ -235,12 +257,13 @@
 --
 --  RINGKASAN API
 --  ──────────────────────────────────────────────────────────────────────────
---  ThorUi:CreateWindow({Title, Size, MinSize, Position, Keybind, ShowToggle,
---                       Splash})
+--  ThorUi:CreateWindow({Title, Logo, Size, MinSize, Position, Keybind,
+--                       ShowToggle, Splash})
 --  ThorUi:Notify({Title, Content, Duration, Icon})
 --  ThorUi:SetKeybind(Enum.KeyCode.X)    ThorUi:Toggle()    ThorUi:Destroy()
 --  ThorUi:SetToggleVisible(bool)
 --  ThorUi:SetTheme({Accent = Color3...})        (v2.3.0, sebelum CreateWindow)
+--  ThorUi:SetLogo({Image, Size})                (v2.3.1, logo custom, sebelum CreateWindow)
 --  ThorUi:CreateState({Name, Default, Callback, Normalize})    (v2.3.0)
 --     st:Get()  st:Set(v)  st:Subscribe(fn)  st:Bind(el,{ToState,ToOption})
 --     st:BindMany({...})  st:Unbind(el)
@@ -306,7 +329,7 @@ local LocalPlayer = Players.LocalPlayer
 
 --// ─────────────────────────────── Library ──────────────────────────────────
 local ThorUi = {
-    Version = "2.3.0",
+    Version = "2.3.1",
 }
 
 --// ──────────────────────────────── Tema ────────────────────────────────────
@@ -512,6 +535,120 @@ local function ChevronIcon(parent, props)
     local b1 = armFrame(-half, 45)  -- batang kiri ↘ (ujung bertemu di puncak)
     local b2 = armFrame(half, -45)  -- batang kanan ↗
     return box, b1, b2
+end
+
+--  LOGO THORHUB (v2.3.1): palu Mjolnir — identitas resmi ThorHub — DIGAMBAR
+--  murni dari Frame (kepala emas ber-gradien 3 titik + 2 paku keling +
+--  gagang biru ber-gradien + kilau), menelusuri jejak ChevronIcon: tanpa
+--  font & tanpa Asset ID → DIJAMIN tampil identik di semua perangkat.
+--  Spesifikasi logo 48x48: kepala (7,4) 34x17 · gagang (20.5,21) 7x23.
+--  CATATAN v2.1.4: frame ber-gradien wajib berlatar PUTIH agar tint murni.
+local function ThorHubLogo(parent, props)
+    props = props or {}
+    local S = props.Size or 24
+    local function px(v)
+        return math.max(1, math.floor(v / 48 * S + 0.5))
+    end
+    local root = Create("Frame", {
+        Name = "ThorHubLogo",
+        BackgroundTransparency = 1,
+        AnchorPoint = props.AnchorPoint,
+        Position = props.Position,
+        Size = UDim2.fromOffset(S, S),
+        Parent = parent,
+    })
+    -- kepala palu: emas (3 titik gradien terang→tengah→gelap, diagonal)
+    local head = Create("Frame", {
+        Position = UDim2.fromOffset(px(7), px(4)),
+        Size = UDim2.fromOffset(px(34), px(17)),
+        BackgroundColor3 = Theme.White,
+        BorderSizePixel = 0,
+        Parent = root,
+    })
+    Corner(head, UDim.new(0, px(4.5)))
+    Create("UIGradient", {
+        Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(253, 230, 138)),
+            ColorSequenceKeypoint.new(0.55, Color3.fromRGB(251, 191, 36)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(180, 83, 9)),
+        }),
+        Rotation = 45,
+        Parent = head,
+    })
+    -- kilau permukaan atas kepala
+    local shine = Create("Frame", {
+        Position = UDim2.fromOffset(px(7) + 1, px(5)),
+        Size = UDim2.fromOffset(px(34) - 2, px(6)),
+        BackgroundColor3 = Theme.White,
+        BackgroundTransparency = 0.75,
+        BorderSizePixel = 0,
+        Parent = root,
+    })
+    Corner(shine, UDim.new(0, px(3)))
+    -- paku keling kiri & kanan
+    local function rivet(x)
+        local r = Create("Frame", {
+            Position = UDim2.fromOffset(px(x), px(9)),
+            Size = UDim2.fromOffset(px(4), px(7)),
+            BackgroundColor3 = Color3.fromRGB(120, 53, 15),
+            BackgroundTransparency = 0.5,
+            BorderSizePixel = 0,
+            Parent = root,
+        })
+        Corner(r, UDim.new(0, px(1.6)))
+    end
+    rivet(13)
+    rivet(31)
+    -- gagang: biru (terang→gelap, vertikal)
+    local handle = Create("Frame", {
+        Position = UDim2.fromOffset(px(20.5), px(21)),
+        Size = UDim2.fromOffset(px(7), px(23)),
+        BackgroundColor3 = Theme.White,
+        BorderSizePixel = 0,
+        Parent = root,
+    })
+    Corner(handle, UDim.new(0, px(3)))
+    Gradient(handle, Color3.fromRGB(147, 197, 253), Color3.fromRGB(37, 99, 235), 90)
+    -- kilau gagang
+    local hShine = Create("Frame", {
+        Position = UDim2.fromOffset(px(22.7), px(21)),
+        Size = UDim2.fromOffset(px(2.6), px(23)),
+        BackgroundColor3 = Theme.White,
+        BackgroundTransparency = 0.72,
+        BorderSizePixel = 0,
+        Parent = root,
+    })
+    Corner(hShine, UDim.new(0, px(1.3)))
+    return root
+end
+
+--  Render logo ke parent (v2.3.1). logoCfg = { Image = "rbxassetid://...",
+--  Size = n } dari ThorUi:SetLogo / CreateWindow({ Logo = ... }):
+--    • Image ada    → ImageLabel milik user sendiri (boleh Asset ID mereka)
+--    • tanpa Image  → palu ThorHub geometris bawaan (default, nol aset)
+--  props.Size = ukuran default per- lokasi (ditimpa logoCfg.Size bila ada).
+local function MakeLogo(parent, props, logoCfg)
+    props = props or {}
+    logoCfg = (type(logoCfg) == "table") and logoCfg or {}
+    local size = tonumber(logoCfg.Size) or props.Size or 24
+    local img = logoCfg.Image
+    if type(img) == "string" and img ~= "" then
+        return Create("ImageLabel", {
+            Name = "ThorHubLogo",
+            BackgroundTransparency = 1,
+            AnchorPoint = props.AnchorPoint,
+            Position = props.Position,
+            Size = UDim2.fromOffset(size, size),
+            Image = img,
+            ScaleType = Enum.ScaleType.Fit,
+            Parent = parent,
+        })
+    end
+    return ThorHubLogo(parent, {
+        Size = size,
+        AnchorPoint = props.AnchorPoint,
+        Position = props.Position,
+    })
 end
 
 --  Buat & mainkan tween langsung; otomatis masuk garbage table.
@@ -1169,8 +1306,9 @@ end
 local _state = {
     Gui           = nil,  -- ScreenGui utama (CoreGui → PlayerGui fallback)
     NotifyHolder  = nil,  -- kolom notifikasi (kanan atas)
-    ToggleButton  = nil,  -- tombol melayang ⚡
-    TogglePulse   = nil,  -- tween denyut tombol ⚡
+    ToggleButton  = nil,  -- tombol melayang (logo palu)
+    TogglePulse   = nil,  -- tween denyut tombol melayang
+    Logo          = nil,  -- logo custom {Image, Size} via ThorUi:SetLogo (v2.3.1)
     ToggleKey     = Enum.KeyCode.RightControl,
     ToggleVisible = true,
     KeyConn       = nil,
@@ -1360,7 +1498,7 @@ function ThorUi:Notify(cfg)
         BackgroundTransparency = 1,
         Position = UDim2.new(0, 18, 0, 0),
         Size = UDim2.new(1, -18, 1, 0),
-        Text = cfg.Title or "ThorUi",
+        Text = cfg.Title or "ThorHub",
         Font = Theme.FontBold,
         TextSize = 13,
         TextColor3 = Theme.Text,
@@ -1462,7 +1600,7 @@ local function bindToggleKey(key)
     end)
 end
 
---// ────────────────── Tombol melayang ⚡ (drag bebas + ketuk) ──────────────────
+--// ─────────── Tombol melayang (logo palu — drag bebas + ketuk) ───────────
 local function ensureToggleButton()
     if _state.ToggleButton and _state.ToggleButton.Parent then
         _state.ToggleButton.Visible = _state.ToggleVisible
@@ -1494,16 +1632,13 @@ local function ensureToggleButton()
     Gradient(btn, Theme.Card, Theme.BackgroundAlt, 45)
     Stroke(btn, { Color = Theme.Accent, Thickness = 1.5, Transparency = 0.1 })
 
-    Create("TextLabel", {
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 2), -- +2px: glyph ⚡ emoji cenderung melayang ke atas
-        Size = UDim2.new(1, 0, 1, 0),
-        Text = "⚡",
-        Font = Theme.FontBold,
-        TextSize = 26,
-        TextColor3 = Theme.White,
-        Parent = btn,
-    })
+    -- logo palu ThorHub (v2.3.1) / logo custom (ThorUi:SetLogo) — geometri
+    -- murni: presisi persis di tengah, tanpa nudge +2px ala glyph emoji ⚡
+    MakeLogo(btn, {
+        Size = 26,
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+    }, _state.Logo)
 
     -- halo berdenyut (glow petir sederhana via transparansi)
     local glow = Create("Frame", {
@@ -1675,6 +1810,17 @@ function ThorUi:SetTheme(patch)
         end
     end
     return Theme
+end
+
+--// ────────────────── v2.3.1: LOGO (pasang sebelum CreateWindow) ─────────────
+--  ThorUi:SetLogo({ Image = "rbxassetid://...", Size = 26 }) — pengguna
+--  library bisa memasang LOGO SENDIRI; berlaku di splash, sidebar & tombol
+--  melayang. Panggil SEBELUM CreateWindow. Tanpa dipanggil → palu ThorHub
+--  geometris bawaan (nol Asset ID). Override per-window:
+--  CreateWindow({ Logo = { Image = "...", Size = 26 } }).
+function ThorUi:SetLogo(cfg)
+    _state.Logo = (type(cfg) == "table") and cfg or nil
+    return _state.Logo
 end
 
 --// ──────────── v2.3.0: QUICK ACTION (tombol aksi melayang) ────────────────
@@ -1869,12 +2015,16 @@ function ThorUi:AddQuickAction(cfg)
 end
 
 --// ────────────────────────── SPLASH SCREEN (tema Thor) ─────────────────────────────
---  Layar pembuka: logo ⚡ memantul + progress bar petir + status menggemas.
---  playSplash(onDone) tidak memblokir; onDone dipanggil setelah fade-out.
-local function playSplash(onDone)
+--  Layar pembuka: logo palu memantul + progress bar petir + status menggemas.
+--  playSplash(onDone, brand) tidak memblokir; onDone dipanggil setelah
+--  fade-out. brand = { Logo, Title } dari CreateWindow (v2.3.1) — tanpa itu
+--  dipakai ThorUi:SetLogo / default palu ThorHub + judul "ThorHub".
+local function playSplash(onDone, brand)
     local gui = ensureGui()
     local reg = Registry.new()
     _state.SplashActive = true
+    local logoCfg = (type(brand) == "table" and brand.Logo) or _state.Logo
+    local titleText = (type(brand) == "table" and brand.Title) or "ThorHub"
 
     local overlay = Create("Frame", {
         Name = "ThorUi_Splash",
@@ -1902,7 +2052,7 @@ local function playSplash(onDone)
         Parent = holder,
     })
 
-    -- lingkaran logo ⚡ (pop memantul saat muncul)
+    -- lingkaran logo (pop memantul saat muncul) — v2.3.1: palu ThorHub
     local circle = Create("Frame", {
         Size = UDim2.fromOffset(88, 88),
         -- PUTIH: agar gradien Card→BackgroundAlt tampil murni (bukan tertint)
@@ -1915,21 +2065,17 @@ local function playSplash(onDone)
     Gradient(circle, Theme.Card, Theme.BackgroundAlt, 45)
     Stroke(circle, { Color = Theme.Accent, Thickness = 1.5, Transparency = 0.05 })
     local circleScale = Create("UIScale", { Scale = 0.3, Parent = circle })
-    Create("TextLabel", {
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 1, 0),
-        Text = "⚡",
-        Font = Theme.FontBold,
-        TextSize = 46,
-        TextColor3 = Theme.AccentGold,
-        Parent = circle,
-    })
+    MakeLogo(circle, {
+        Size = 48,
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+    }, logoCfg)
 
     -- judul dengan teks gradien emas → cyan
     local title = Create("TextLabel", {
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 0, 24),
-        Text = "ThorUi",
+        Text = titleText,
         Font = Theme.FontBold,
         TextSize = 22,
         TextColor3 = Theme.White,
@@ -5250,7 +5396,8 @@ function TabClass:AddModelView(cfg)
         frameCamera(shown)
     end
 
-    -- ── palu petir geometris bawaan (nol aset — murni Part box) ──
+    -- ── palu petir geometris bawaan (nol aset — murni Part box);
+    --    v2.3.1: warna SENADA LOGO THORHUB — kepala emas + gagang biru ──
     local function buildDefaultMjolnir()
         local m = Instance.new("Model")
         m.Name = "Mjolnir"
@@ -5266,19 +5413,20 @@ function TabClass:AddModelView(cfg)
             p.Parent = m
             return p
         end
-        local steel = Color3.fromRGB(186, 194, 208)
-        local gold = Color3.fromRGB(255, 190, 0)
-        local wood = Color3.fromRGB(122, 86, 51)
-        -- kepala palu
-        part(Vector3.new(0.9, 1.5, 1.5), steel, Enum.Material.Metal, Vector3.new(0, 2.55, 0))
-        part(Vector3.new(0.5, 1.62, 1.62), steel, Enum.Material.Metal, Vector3.new(0, 2.55, 0))
-        -- plat emas pengikat atas & bawah kepala
-        part(Vector3.new(0.96, 0.18, 1.56), gold, Enum.Material.Metal, Vector3.new(0, 3.22, 0))
-        part(Vector3.new(0.96, 0.18, 1.56), gold, Enum.Material.Metal, Vector3.new(0, 1.88, 0))
-        -- gagang kayu + balutan emas
-        part(Vector3.new(0.42, 1.9, 0.42), wood, Enum.Material.Wood, Vector3.new(0, 1.0, 0))
-        part(Vector3.new(0.5, 0.14, 0.5), gold, Enum.Material.Metal, Vector3.new(0, 1.85, 0))
-        part(Vector3.new(0.5, 0.14, 0.5), gold, Enum.Material.Metal, Vector3.new(0, 0.28, 0))
+        local gold      = Color3.fromRGB(251, 191, 36)  -- kepala (persis logo)
+        local goldDeep  = Color3.fromRGB(180, 83, 9)    -- plat pengikat kepala
+        local blue      = Color3.fromRGB(37, 99, 235)   -- gagang (persis logo)
+        local blueLight = Color3.fromRGB(147, 197, 253) -- balutan gagang
+        -- kepala palu emas
+        part(Vector3.new(0.9, 1.5, 1.5), gold, Enum.Material.Metal, Vector3.new(0, 2.55, 0))
+        part(Vector3.new(0.5, 1.62, 1.62), gold, Enum.Material.Metal, Vector3.new(0, 2.55, 0))
+        -- plat emas tua pengikat atas & bawah kepala
+        part(Vector3.new(0.96, 0.18, 1.56), goldDeep, Enum.Material.Metal, Vector3.new(0, 3.22, 0))
+        part(Vector3.new(0.96, 0.18, 1.56), goldDeep, Enum.Material.Metal, Vector3.new(0, 1.88, 0))
+        -- gagang biru + balutan biru muda
+        part(Vector3.new(0.42, 1.9, 0.42), blue, Enum.Material.Metal, Vector3.new(0, 1.0, 0))
+        part(Vector3.new(0.5, 0.14, 0.5), blueLight, Enum.Material.Metal, Vector3.new(0, 1.85, 0))
+        part(Vector3.new(0.5, 0.14, 0.5), blueLight, Enum.Material.Metal, Vector3.new(0, 0.28, 0))
         -- pommel emas
         part(Vector3.new(0.56, 0.3, 0.56), gold, Enum.Material.Metal, Vector3.new(0, 0.06, 0))
         return m
@@ -5726,21 +5874,22 @@ function ThorUi:CreateWindow(cfg)
         Active = true,
         Parent = sidebar,
     })
-    Create("TextLabel", {
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 12, 0, 1), -- +1px: glyph ⚡ emoji cenderung melayang ke atas
-        Size = UDim2.new(0, 20, 1, 0),
-        Text = "⚡",
-        Font = Theme.FontBold,
-        TextSize = 18,
-        TextColor3 = Theme.AccentGold,
-        Parent = logoRow,
-    })
+    -- v2.3.1: logo palu ThorHub geometris (atau logo custom via cfg.Logo /
+    -- ThorUi:SetLogo) — presisi di tengah baris, tanpa nudge glyph emoji.
+    -- cfg.Logo MENIMPA config global sepenuhnya (termasuk Size) supaya
+    -- ukuran render (MakeLogo) dan offset teks selalu KONSISTEN.
+    local effLogo = cfg.Logo or _state.Logo
+    local logoSize = tonumber(effLogo and effLogo.Size) or 22
+    local logoMark = MakeLogo(logoRow, {
+        Size = 22,
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.new(0, 12 + logoSize / 2, 0.5, 0),
+    }, effLogo)
     local logoText = Create("TextLabel", {
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 38, 0, 0),
-        Size = UDim2.new(1, -44, 1, 0),
-        Text = cfg.Title or "ThorUi",
+        Position = UDim2.new(0, 12 + logoSize + 6, 0, 0),
+        Size = UDim2.new(1, -(logoSize + 26), 1, 0),
+        Text = cfg.Title or "ThorHub",
         Font = Theme.FontBold,
         TextSize = 14,
         TextColor3 = Theme.White,
@@ -5879,7 +6028,9 @@ function ThorUi:CreateWindow(cfg)
         SizeConstraint = sizeConstraint,
         Sidebar = sidebar,
         LogoRow = logoRow,
+        LogoMark = logoMark,
         LogoText = logoText,
+        _logoSize = logoSize,
         VersionLabel = versionLabel,
         TabList = tabList,
         Right = right,
@@ -6206,7 +6357,7 @@ function ThorUi:CreateWindow(cfg)
         _state.SplashDone = true
         playSplash(function()
             self:Show()
-        end)
+        end, { Logo = cfg.Logo, Title = cfg.Title })
     else
         self:Show()
     end
@@ -6386,6 +6537,11 @@ function WindowClass:_updateResponsive()
     self.Right.Position = UDim2.new(0, w, 0, 0)
     self.Right.Size = UDim2.new(1, -w, 1, 0)
     self.LogoText.Visible = not narrow
+    -- v2.3.1: logo palu/custom ikut ke TENGAH saat sidebar icon-only
+    -- (pola penempatan ikon tab v2.1.1)
+    self.LogoMark.Position = narrow
+        and UDim2.new(0.5, 0, 0.5, 0)
+        or UDim2.new(0, 12 + (self._logoSize or 22) / 2, 0.5, 0)
     self.VersionLabel.Visible = not narrow and not self.Collapsed
     for _, t in ipairs(self.Tabs) do
         t.Label.Visible = not narrow
@@ -6702,8 +6858,13 @@ return ThorUi
         -- ThorUi:SetTheme({ Accent = Color3.fromRGB(170, 90, 255),
         --                    AccentGold = Color3.fromRGB(255, 200, 60) })
 
+        -- (Opsional) pasang LOGO SENDIRI — pengguna library bisa mengganti
+        -- palu ThorHub bawaan (v2.3.1). Berlaku di splash + sidebar +
+        -- tombol melayang; atau per-window: CreateWindow({ Logo = {...} }):
+        -- ThorUi:SetLogo({ Image = "rbxassetid://123456789", Size = 26 })
+
         local Window = ThorUi:CreateWindow({
-                Title   = "ThorUi ⚡",
+                Title   = "ThorHub ⚡",
                 Size    = UDim2.new(0, 440, 0, 390),  -- v2.2.3: default rada persegu; kosongkan agar otomatis responsif + SELALU muat di layar
                 MinSize = Vector2.new(400, 250),       -- batas minimal saat resize
                 Keybind = Enum.KeyCode.RightControl,  -- toggle buka/tutup UI (PC)
@@ -6929,7 +7090,7 @@ return ThorUi
         })
 
         Tab2:AddParagraph({
-                Title = "Tentang ThorUi v2.3",
+                Title = "Tentang ThorHub v2.3",
                 Text = "UI library Dewa Petir: sidebar tab ber-ikon, search bar, "
                         .. "splash screen, ColorPicker, Confirm dialog, section yang "
                         .. "bisa di-minimize, PLUS v2.3: State binding antar-elemen, "

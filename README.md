@@ -1,12 +1,12 @@
 # ⚡ ThorUi v2 — Roblox UI Library bertema Dewa Petir
 
 > UI library untuk Roblox dengan tema **Thor / Dewa Petir**: gelap, snappy, dan elektrik.
-> **v2.3.0 — RILIS FITUR BESAR: STATE BINDING antar-elemen (ubah satu slider, elemen lain ikut — dua arah) + DEPENDS (baris otomatis muncul/sembunyi mengikuti nilai elemen lain) + SUB-ROW `Element:AddChild()` (elemen bertingkat di dalam kartu induk) + SLIDER MULTI-SATUAN dengan konversi otomatis (m ↔ km) & ketik nilai eksak + BUTTON klik dua tahap (ConfirmText) + DROPDOWN pencarian & mode Apply & kelola opsi runtime + LIST browser item (cari/grup/pilih/badge) + MODELVIEW etalase 3D dengan putaran otomatis + CANVAS dashboard mini + GROUP radio toggles + QUICK ACTION tombol melayang + `ThorUi:SetTheme()`** — semua tetap 100% murni script tanpa Asset ID. v2.2.3: ukuran default rada persegu dihitung dari dimensi layar aktual (dijamin muat di semua perangkat) + v2.2.2: panah digambar (fix kotak tofu), semua section mulai terlipat, drag window bebas tanpa batas + v2.2.1: menu (section) bisa di-minimize + v2.2.0: optimasi performa menyeluruh.
+> **v2.3.1 — LOGO THORHUB: palu Mjölnir (kepala emas ber-gradien + gagang biru) menggantikan logo ⚡ di splash, sidebar & tombol melayang — digambar murni dari geometri (nol Asset ID, dijamin tampil di semua perangkat) + API baru `ThorUi:SetLogo({ Image, Size })` supaya pengguna library bisa memasang logo sendiri.** v2.3.0 — RILIS FITUR BESAR: STATE BINDING antar-elemen (ubah satu slider, elemen lain ikut — dua arah) + DEPENDS (baris otomatis muncul/sembunyi mengikuti nilai elemen lain) + SUB-ROW `Element:AddChild()` (elemen bertingkat di dalam kartu induk) + SLIDER MULTI-SATUAN dengan konversi otomatis (m ↔ km) & ketik nilai eksak + BUTTON klik dua tahap (ConfirmText) + DROPDOWN pencarian & mode Apply & kelola opsi runtime + LIST browser item (cari/grup/pilih/badge) + MODELVIEW etalase 3D dengan putaran otomatis + CANVAS dashboard mini + GROUP radio toggles + QUICK ACTION tombol melayang + `ThorUi:SetTheme()`** — semua tetap 100% murni script tanpa Asset ID. v2.2.3: ukuran default rada persegu dihitung dari dimensi layar aktual (dijamin muat di semua perangkat) + v2.2.2: panah digambar (fix kotak tofu), semua section mulai terlipat, drag window bebas tanpa batas + v2.2.1: menu (section) bisa di-minimize + v2.2.0: optimasi performa menyeluruh.
 > Dukungan penuh **PC & Mobile** · Window *draggable* & *resizable* · **100% murni script** (tanpa Asset ID eksternal) · **Anti memory-leak**
 
 | | |
 |---|---|
-| **Versi** | 2.3.0 |
+| **Versi** | 2.3.1 |
 | **Tipe** | ModuleScript tunggal (Luau), tanpa dependensi |
 | **Platform** | PC (Mouse + Keyboard) & Mobile (Touch) |
 | **Aset** | `Instance.new` / `UICorner` / `UIStroke` / `UIGradient` saja — anti asset takedown |
@@ -17,7 +17,7 @@
 
 ### Baru di v2.0.0 (tampilan modern)
 
-- **Splash screen** — layar pembuka dengan logo ⚡ memantul, progress bar petir, dan status menggemas ("Memanggil petir...", "Menempa Mjolnir..."). Muncul otomatis sekali per sesi, bisa dimatikan dengan `Splash = false`.
+- **Splash screen** — layar pembuka dengan logo palu ThorHub memantul, progress bar petir, dan status menggemas ("Memanggil petir...", "Menempa Mjolnir..."). Muncul otomatis sekali per sesi, bisa dimatikan dengan `Splash = false`.
 - **Sidebar tab vertikal** — tab ber-ikon di sisi kiri, dengan indikator petir yang "menyambar" saat tab aktif. Saat window sempit (< 430px), sidebar otomatis menyusut jadi icon-only.
 - **Search bar** — kotak pencarian di header yang memfilter elemen tab aktif secara real-time. Ketik "toggle" → hanya elemen bernama toggle yang tampil.
 - **ColorPicker** — picker warna lengkap: kotak Saturasi-Value + slider Hue pelangi + tampilan HEX/RGB, semuanya digambar murni dengan `UIGradient` (tanpa aset gambar).
@@ -51,6 +51,19 @@
 - **FIX ColorPicker slider hue via sentuhan** — dulu slider hue hanya bisa digeser mouse; kini jari juga bisa (filter gesture source-lock).
 - **Gesture source-lock menyeluruh** — drag window, resize, slider, dan ikon ⚡ mengunci sumber input saat gesture dimulai: di perangkat *hybrid* (PC layar sentuh / tablet + mouse) posisi mouse yang menetap tidak lagi bikin UI meloncat; jari kedua tidak mengganggu drag yang sedang berjalan.
 - **Sentuhan mobile makin nyaman** — nilai slider tidak terpotong (`TextTruncate`), baris opsi dropdown 24→28px, kartu Confirm dialog auto-fit di layar sempit.
+
+### Baru di v2.3.1 (logo ThorHub — palu Mjölnir, bisa diganti pengguna library)
+
+- **LOGO THORHUB resmi** — logo ⚡ diganti **palu Mjölnir** (kepala emas ber-gradien 3 titik + 2 paku keling + gagang biru ber-gradien + kilau) di **3 titik brand**: lingkaran splash, baris logo sidebar (ikut ke tengah saat sidebar icon-only), dan tombol melayang toggle window. Digambar **murni dari Frame** mengikuti pola chevron v2.2.2: tanpa font & tanpa Asset ID → dijamin tampil identik di semua perangkat (glyph ⚡ lama bergantung pada font perangkat dan sering "melayang" dari garis dasar).
+- **Logo bisa diganti pengguna library** — orang lain yang memakai ThorUi bisa memasang logo sendiri tanpa mengedit source:
+  ```lua
+  ThorUi:SetLogo({ Image = "rbxassetid://123456789", Size = 26 })  -- sebelum CreateWindow
+  -- atau per-window:
+  ThorUi:CreateWindow({ Logo = { Image = "rbxassetid://123456789", Size = 26 } })
+  ```
+  Tanpa itu → palu ThorHub bawaan (tetap nol aset). `Image` menerima asset gambar milik pengguna sendiri (mis. hasil upload Decal); `Size` opsional mengatur ukuran px.
+- **Brand "ThorHub"** — judul default splash & sidebar kini `"ThorHub"` (tetap bisa dioverride lewat `Title`).
+- **Mjölnir 3D senada** — palu bawaan `AddModelView` dicat ulang persis logo: kepala emas + gagang biru.
 
 ### Baru di v2.3.0 (rilis fitur besar — semua tetap tema Thor, nol aset)
 
@@ -212,7 +225,8 @@ Contoh implementasi **lengkap** (semua komponen) tersedia di [`Example.lua`](Exa
 | `ThorUi:Notify(cfg)` | Menampilkan notifikasi di kanan atas layar. |
 | `ThorUi:SetKeybind(key)` | Mengubah keybind toggle UI (default `Enum.KeyCode.RightControl`). |
 | `ThorUi:Toggle()` | Buka/tutup window aktif secara programatik. |
-| `ThorUi:SetToggleVisible(bool)` | Tampilkan / sembunyikan tombol ⚡ melayang. |
+| `ThorUi:SetToggleVisible(bool)` | Tampilkan / sembunyikan tombol logo melayang. |
+| `ThorUi:SetLogo(cfg)` | **v2.3.1** — pasang logo custom `{ Image, Size }` (panggil **sebelum** `CreateWindow`; tanpa ini → palu ThorHub bawaan). |
 | `ThorUi:Destroy()` | Hancurkan seluruh UI + bersihkan semua memory. |
 | `ThorUi.Theme` | Table tema — bisa di-override **sebelum** `CreateWindow`. |
 | `ThorUi.Version` | String versi library. |
@@ -221,18 +235,19 @@ Contoh implementasi **lengkap** (semua komponen) tersedia di [`Example.lua`](Exa
 
 | Key | Tipe | Default | Deskripsi |
 |---|---|---|---|
-| `Title` | `string` | `"ThorUi ⚡"` | Judul di title bar. |
+| `Title` | `string` | `"ThorHub ⚡"` | Judul di title bar. |
+| `Logo` | `table` | palu ThorHub | **v2.3.1** — `{ Image = "rbxassetid://...", Size = 26 }`: logo custom untuk window ini (meng-override `SetLogo`). |
 | `Size` | `UDim2` | responsif | Ukuran window. Kosongkan untuk otomatis (mobile: `0.92 x 0.62` skala; PC: `580 x 420` px). |
 | `MinSize` | `Vector2` | `(400, 250)` | Ukuran minimal via `UISizeConstraint`. Auto-clamp di layar kecil. |
 | `Position` | `UDim2` | tengah layar | Posisi awal window. |
 | `Keybind` | `Enum.KeyCode` | `RightControl` | Tombol toggle UI (PC). |
-| `ShowToggle` | `boolean` | `true` | Tampilkan tombol ⚡ melayang. |
+| `ShowToggle` | `boolean` | `true` | Tampilkan tombol logo melayang. |
 
 #### Konfigurasi `Notify`
 
 | Key | Tipe | Default | Deskripsi |
 |---|---|---|---|
-| `Title` | `string` | `"ThorUi"` | Judul notifikasi. |
+| `Title` | `string` | `"ThorHub"` | Judul notifikasi. |
 | `Content` | `string` | — | Isi pesan. |
 | `Duration` | `number` | `4` | Lama tampil (detik). Ketuk/sentuh untuk menutup lebih cepat. |
 | `Icon` | `string` | `"⚡"` | Ikon di samping judul. |
