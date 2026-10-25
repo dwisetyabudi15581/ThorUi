@@ -153,6 +153,42 @@
 --                         620 x 430) — tampil langsung proporsional,
 --                         tetap bisa di-resize / minimize sesuka hati.
 --
+--  BARU DI v2.3.0 (rilis fitur besar — semua tetap tema Thor, nol aset)
+--  • STATE + BINDING      : ThorUi:CreateState — satu nilai bersama untuk
+--                          banyak elemen; ubah salah satu, semuanya ikut
+--                          (2 arah). st:Bind(el, {ToState, ToOption}),
+--                          st:BindMany, st:Subscribe, st:Unbind
+--  • DEPENDS              : baris muncul/sembunyi OTOMATIS mengikuti nilai
+--                          sumber: AddSlider({..., Depends = {Element =
+--                          toggleX, Value = true}}) · runtime
+--                          Element:SetDependency / ClearDependency
+--  • SUB-ROW (AddChild)   : elemen bertingkat! toggle:AddChild("Slider",
+--                          {...}) — anak tampil di dalam kartu induk
+--                          (terinden, garis pemandu petir, chevron lipat)
+--  • SLIDER UNITS         : multi-satuan + konversi otomatis (m ↔ km),
+--                          chip pemilih satuan, awalan/satuan berwarna
+--                          (RichText), KLIK ANGKA untuk ketik nilai eksak,
+--                          setter runtime :SetRange/:SetDecimals/
+--                          :SetIncrement/:SetSuffix/:SetUnit
+--  • BUTTON ConfirmText   : klik dua tahap untuk aksi berisiko (batal
+--                          otomatis 2.5 dtk) + :ResetConfirm
+--  • DROPDOWN ++          : Search (filter opsi), ApplyButton (mode aksi:
+--                          pilih lalu Apply → callback(nilai, indeks)),
+--                          :SetValues/:AddValue/:RemoveValue/:Filter
+--  • LIST (baru)          : browser item — Search, Groups, Multi, badge
+--                          TopRight, gambar opsional milik user, OnItemClick
+--  • MODELVIEW (baru)     : etalase 3D ViewportFrame + kamera auto-frame
+--                          + Spin; tanpa model diberikan → palu petir
+--                          geometris BAWAAN (murni Part, tetap nol aset)
+--  • CANVAS (baru)        : dashboard mini deklaratif — Text/Bar/Button/
+--                          Divider + :Set(nama, props)/:Get(nama)/:Fire
+--  • GROUP (radio)        : ThorUi:CreateGroup({KeepNone}) + AddToggle({...
+--                          , Group = g}) — maksimal satu aktif
+--  • QUICK ACTION         : ThorUi:AddQuickAction({Icon, Name, Callback})
+--                          — deret tombol melayang yang bisa digeser
+--  • SetTheme(patch)      : pengganti edit ThorUi.Theme manual (tetap
+--                          dipanggil SEBELUM CreateWindow)
+--
 --  BARU DI v2.2.3 (permintaan user: "ukuran default bikin rada persegi, jangan
 --                  terlalu wide; drag bebas belum work — window langsung
 --                  terpotong padahal belum sampai pinggir layar")
@@ -204,30 +240,59 @@
 --  ThorUi:Notify({Title, Content, Duration, Icon})
 --  ThorUi:SetKeybind(Enum.KeyCode.X)    ThorUi:Toggle()    ThorUi:Destroy()
 --  ThorUi:SetToggleVisible(bool)
+--  ThorUi:SetTheme({Accent = Color3...})        (v2.3.0, sebelum CreateWindow)
+--  ThorUi:CreateState({Name, Default, Callback, Normalize})    (v2.3.0)
+--     st:Get()  st:Set(v)  st:Subscribe(fn)  st:Bind(el,{ToState,ToOption})
+--     st:BindMany({...})  st:Unbind(el)
+--  ThorUi:CreateGroup({KeepNone})               (v2.3.0 — radio toggles)
+--  ThorUi:AddQuickAction({Icon, Name, Callback}) (v2.3.0 — tombol melayang)
 --
 --  Window:CreateTab({Name, Icon})        Window:Show()/Hide()/Toggle()
 --  Window:SetCollapsed(bool)             Window:Destroy()
 --  Window:SetKeybind(Enum.KeyCode.X)     Window:SetTitle(text)
 --  Window:Confirm({Title, Content, ConfirmText, CancelText, OnConfirm, OnCancel})
 --
---  Tab:AddButton({Name, Callback})
---  Tab:AddToggle({Name, Default, Callback})              :Set(bool) / :Get()
---  Tab:AddSlider({Name, Min, Max, Default, Increment, Precision, Suffix, Callback})
---  Tab:AddDropdown({Name, Values, Default, Multi, Callback})
+--  Tab:AddButton({Name, ConfirmText, Callback})        (v2.3.0: klik 2 tahap)
+--  Tab:AddToggle({Name, Default, Callback, Group})     :Set(bool) / :Get()
+--  Tab:AddSlider({Name, Min, Max, Default, Increment, Precision, Suffix,
+--                 Prefix, Units, Callback})             :Set(n) / :Get()
+--     Units = { Options = {{Name, Suffix, Prefix, FromBase, ToBase, Format,
+--               Decimals}}, Default = "m", Callback = fn }
+--     v2.3.0: klik ANGKA utk ketik eksak · :SetRange :SetDecimals
+--             :SetIncrement :SetSuffix :SetUnit
+--  Tab:AddDropdown({Name, Values, Default, Multi, Search, ApplyButton,
+--                   Callback})                         :Set(v) / :Get()
+--     v2.3.0: :SetValues :AddValue :RemoveValue :Filter
 --  Tab:AddTextInput({Name, Text, Placeholder, ClearOnFocus, Callback(text, enter)})
 --  Tab:AddKeybind({Name, Default, Callback})             :SetKey(enum) / :Get()
 --  Tab:AddColorPicker({Name, Default, Callback})          :Set(Color3) / :Get()
+--  Tab:AddList({Name, Items|Groups, Multi, Search, Selected, MaxHeight,
+--               OnItemClick})                    (v2.3.0 — browser item)
+--     :Get()  :Set(sel)  :SetItems(items, groups)  :Clear()  :Filter(q)
+--  Tab:AddModelView({Name, Model, Height, Spin})  (v2.3.0 — etalase 3D)
+--     :SetModel(inst)  :SetSpin(bool)  :Get()
+--  Tab:AddCanvas({Name, Widgets})                 (v2.3.0 — dashboard mini)
+--     Widgets: {Type="Text"|"Bar"|"Button"|"Divider", Name, Text, Value,
+--               Color, Callback}
+--     :Set(nama, props)  :Get(nama)  :AddWidget(spec)  :Fire(nama)
 --  Tab:AddSection({Name, Description, Collapsed})   → Section (menu)
 --     Collapsed default = true (v2.2.2) · false = mulai terbuka
 --     Section:SetCollapsed(bool)  Section:Toggle()  Section:IsCollapsed()
 --  Tab:AddLabel({Text})   Tab:AddParagraph({Title, Text})
 --  Element:Set(...)         Element:Get()          Element:Remove()
 --  Element:SetDescription(teks)   → ubah keterangan elemen kapan pun
+--  v2.3.0 (semua elemen inti):
+--  Element:AddChild(kind, cfg)  → anak bertingkat ("Toggle"/"Slider"/
+--     "Dropdown"/"Button"/"TextInput"/"Keybind"/"ColorPicker"/"Label"/
+--     "Paragraph"/"List"/"ModelView"/"Canvas")
+--  Element:SetExpanded(bool)  Element:ToggleExpanded()  Element:IsExpanded()
+--  Element:SetDependency({Element|State, Value|Predicate})
+--  Element:ClearDependency()
 --
 --  Catatan: SEMUA elemen menerima Description = "keterangan kecil" yang
---  ditampilkan di bawah judul elemen. Ubah warna di ThorUi.Theme
---  SEBELUM CreateWindow untuk custom tema. Contoh implementasi lengkap ada
---  di BLOK PALING BAWAH file ini.
+--  ditampilkan di bawah judul elemen. Ubah warna lewat ThorUi:SetTheme({...})
+--  atau ThorUi.Theme SEBELUM CreateWindow untuk custom tema. Contoh
+--  implementasi lengkap ada di BLOK PALING BAWAH file ini.
 --════════════════════════════════════════════════════════════════════════════
 
 --// ───────────────────────────── Services ──────────────────────────────────
@@ -241,7 +306,7 @@ local LocalPlayer = Players.LocalPlayer
 
 --// ─────────────────────────────── Library ──────────────────────────────────
 local ThorUi = {
-    Version = "2.2.3",
+    Version = "2.3.0",
 }
 
 --// ──────────────────────────────── Tema ────────────────────────────────────
@@ -288,6 +353,24 @@ function Registry:Connect(signal, handler)
     local conn = signal:Connect(handler)
     table.insert(self._conns, conn)
     return conn
+end
+
+--  v2.3.0: putus SATU koneksi lebih awal (koneksi tetap aman bila lupa
+--  dipanggil — Clean() tetap memutus semuanya saat elemen dihancurkan).
+--  CATATAN: pencarian manual (bukan removeFrom) karena util tersebut
+--  dideklarasikan lebih bawah di file ini.
+function Registry:Disconnect(conn)
+    if typeof(conn) == "RBXScriptConnection" then
+        pcall(function()
+            conn:Disconnect()
+        end)
+        for i, c in ipairs(self._conns) do
+            if c == conn then
+                table.remove(self._conns, i)
+                break
+            end
+        end
+    end
 end
 
 --  OPTIMASI v2.2.0: tween yang SUDAH SELESAI otomatis keluar dari daftar.
@@ -661,6 +744,425 @@ local function hexFromColor3(c)
         math.floor(c.G * 255 + 0.5),
         math.floor(c.B * 255 + 0.5)
     )
+end
+
+--// ───────────── v2.3.0: RichText (angka berwarna pada nilai slider) ────────
+--  Escape teks agar aman di dalam RichText, lalu bungkus dengan tag warna.
+--  Dipakai slider: ANGKA tetap emas, awalan/satuan tampil redup kebiruan.
+local function escapeRT(text)
+    local s = tostring(text)
+    s = s:gsub("&", "&amp;")
+    s = s:gsub("<", "&lt;")
+    s = s:gsub(">", "&gt;")
+    return s
+end
+
+local function rtColor(color, text)
+    return string.format(
+        '<font color="rgb(%d,%d,%d)">%s</font>',
+        math.floor(color.R * 255 + 0.5),
+        math.floor(color.G * 255 + 0.5),
+        math.floor(color.B * 255 + 0.5),
+        escapeRT(text)
+    )
+end
+
+--// ──────────────── v2.3.0: perbandingan nilai (rekursif aman) ──────────────
+--  Dipakai State & Dependency untuk mendeteksi "nilai benar2 berubah"
+--  (array multi-dropdown dibandingkan per-isinya, bukan per-referensi).
+local function valuesEqual(a, b, seen)
+    if a == b then
+        return true
+    end
+    if type(a) ~= "table" or type(b) ~= "table" then
+        return false
+    end
+    seen = seen or {}
+    if seen[a] == b then
+        return true
+    end
+    seen[a] = b
+    for k, v in pairs(a) do
+        if not valuesEqual(v, b[k], seen) then
+            return false
+        end
+    end
+    for k in pairs(b) do
+        if a[k] == nil then
+            return false
+        end
+    end
+    return true
+end
+
+--// ───────────────── v2.3.0: SISTEM STATE + BINDING + DEPENDENCY ────────────
+--  STATE   : satu nilai bersama yang bisa DIKAITKAN ke banyak elemen — ubah
+--            salah satu, semuanya ikut (dua arah, bebas echo/loop).
+--  DEPENDS : baris elemen muncul/sembunyi OTOMATIS mengikuti nilai sumber
+--            (mis. slider "Kecepatan" hanya tampil saat toggle "Speed" ON).
+--  GROUP   : perilaku radio — sekumpulan toggle, maksimal satu aktif.
+local StateClass = {}
+StateClass.__index = StateClass
+
+local function isThorState(v)
+    return type(v) == "table" and v._kind == "ThorState"
+end
+
+--  Dependensi: [sumber] = { {El = elemen}, ... } — sumber bisa elemen/state.
+--  Weak-key: sumber yang sudah dihancurkan & GC tidak menahan memori.
+local DepRegistry = setmetatable({}, { __mode = "k" })
+local AllGroups = {} -- semua grup eksklusif (untuk pembersihan saat Remove)
+
+--  Nilai terkini sebuah sumber (elemen → :Get(), state → .Value).
+local function sourceValue(src)
+    if isThorState(src) then
+        return src.Value
+    end
+    if type(src) == "table" and type(src.Get) == "function" then
+        local ok, v = pcall(src.Get, src)
+        if ok then
+            return v
+        end
+    end
+    return nil
+end
+
+--  Terapkan visibilitas satu baris dependen (dengan kaskade ke turunannya).
+local depApply
+local function evaluateDepsOf(source)
+    local deps = DepRegistry[source]
+    if not deps then
+        return
+    end
+    for i = #deps, 1, -1 do
+        local entry = deps[i]
+        local el = entry.El
+        if type(el) ~= "table" or not el.Instance or not el.Instance.Parent then
+            table.remove(deps, i)
+        else
+            depApply(el)
+        end
+    end
+end
+
+depApply = function(el)
+    local src = el._depSource
+    if not src then
+        return
+    end
+    local visible
+    if type(el._depPredicate) == "function" then
+        local ok, result = pcall(el._depPredicate, sourceValue(src), src, el)
+        visible = ok and result == true
+    else
+        visible = valuesEqual(sourceValue(src), el._depExpected)
+    end
+    -- rantai: sumber disembunyikan oleh dependensinya sendiri → ikut sembunyi
+    if visible and src._depSource and src._depVisible == false then
+        visible = false
+    end
+    el._depVisible = visible
+    local show = visible
+    if show and el.Section and el.Section.Collapsed then
+        show = false -- section sedang terlipat: tetap ikut terlipat
+    end
+    if el.Instance then
+        el.Instance.Visible = show
+    end
+    evaluateDepsOf(el)
+end
+
+--  Daftarkan ketergantungan sebuah elemen. Konfigurasi:
+--    Depends = { Element = toggleX, Value = true }
+--    Depends = { State   = stateY,  Value = 25 }
+--    Depends = { Element = toggleX, Predicate = function(v) return v == true end }
+local function registerDependency(el, cfg)
+    if type(cfg) ~= "table" then
+        return
+    end
+    local src = cfg.Element or cfg.State or cfg.Source
+    if src == nil then
+        return
+    end
+    -- lepas dependensi lama bila ada
+    if el._depSource then
+        local old = DepRegistry[el._depSource]
+        if old then
+            for i, entry in ipairs(old) do
+                if entry.El == el then
+                    table.remove(old, i)
+                    break
+                end
+            end
+        end
+    end
+    el._depSource = src
+    el._depExpected = cfg.Value
+    el._depPredicate = type(cfg.Predicate) == "function" and cfg.Predicate or nil
+    local list = DepRegistry[src]
+    if not list then
+        list = {}
+        DepRegistry[src] = list
+    end
+    table.insert(list, { El = el })
+    depApply(el)
+end
+
+local function clearDependency(el)
+    if el._depSource then
+        local old = DepRegistry[el._depSource]
+        if old then
+            for i, entry in ipairs(old) do
+                if entry.El == el then
+                    table.remove(old, i)
+                    break
+                end
+            end
+        end
+    end
+    el._depSource = nil
+    el._depExpected = nil
+    el._depPredicate = nil
+    el._depVisible = nil
+    if el.Instance and el.Instance.Parent then
+        local show = true
+        if el.Section and el.Section.Collapsed then
+            show = false
+        end
+        el.Instance.Visible = show
+    end
+end
+
+--  Sinkronisasi grup eksklusif — dipanggil setiap nilai toggle berubah.
+local function syncGroup(el)
+    local g = el._group
+    if type(g) ~= "table" then
+        return
+    end
+    if el.Get and el:Get() == true then
+        g.Active = el
+        for _, other in ipairs(g.Options) do
+            if other ~= el and other.Get and other:Get() == true then
+                other:Set(false)
+            end
+        end
+    elseif g.Active == el and g.KeepNone == false then
+        -- grup mewajibkan satu aktif → nyalakan kembali
+        el:Set(true)
+    end
+end
+
+--  Pipeline perubahan nilai elemen: (1) dorong ke state terikat, (2) evaluasi
+--  baris yang Depends pada elemen ini. Dipanggil pabrik elemen SETIAP kali
+--  nilainya berubah — baik oleh aksi pengguna maupun :Set() programatik.
+local function notifyChange(element)
+    if type(element) ~= "table" or not element.Instance then
+        return
+    end
+    for _, link in ipairs(element._links or {}) do
+        if not link._pushing then
+            local v = sourceValue(element)
+            local mapped = v
+            if type(link.ToState) == "function" then
+                mapped = link.ToState(v, element)
+            end
+            link._pushing = true
+            link.State:Set(mapped, true)
+            link._pushing = false
+        end
+    end
+    evaluateDepsOf(element)
+end
+
+--  Lepas elemen dari semua registry global (dipanggil :Remove() elemen).
+local function unregisterElement(el)
+    for _, link in ipairs(el._links or {}) do
+        removeFrom(link.State._links, link)
+    end
+    el._links = nil
+    if el._depSource then
+        local old = DepRegistry[el._depSource]
+        if old then
+            for i, entry in ipairs(old) do
+                if entry.El == el then
+                    table.remove(old, i)
+                    break
+                end
+            end
+        end
+    end
+    DepRegistry[el] = nil
+    el._depSource = nil
+    for _, g in ipairs(AllGroups) do
+        removeFrom(g.Options, el)
+        if g.Active == el then
+            g.Active = nil
+        end
+    end
+    el._group = nil
+end
+
+--  ── State API publik ──
+--  ThorUi:CreateState({ Name, Default, Callback, Normalize })
+--  st:Get() / st:Set(v) / st:Subscribe(fn) / st:Bind(target, {ToState, ToOption})
+--  / st:BindMany({...}) / st:Unbind(target)
+function ThorUi:CreateState(cfg)
+    cfg = cfg or {}
+    local st = setmetatable({
+        _kind = "ThorState",
+        Name = tostring(cfg.Name or "State"),
+        Value = cfg.Default,
+        Normalize = type(cfg.Normalize) == "function" and cfg.Normalize or nil,
+        Callback = type(cfg.Callback) == "function" and cfg.Callback or nil,
+        _links = {},
+        _subs = {},
+    }, StateClass)
+    return st
+end
+
+function StateClass:Get()
+    return self.Value
+end
+
+--  Dorong nilai state ke satu target (elemen :Set silent / state lain :Set).
+local function pushLink(link, stateValue)
+    local mapped = stateValue
+    if type(link.ToOption) == "function" then
+        mapped = link.ToOption(stateValue, link.Target)
+    end
+    local t = link.Target
+    if isThorState(t) then
+        t:Set(mapped, true)
+    elseif type(t) == "table" and type(t.Set) == "function" then
+        pcall(t.Set, t, mapped, true)
+    end
+end
+
+function StateClass:Set(value, fireCallback)
+    if type(self.Normalize) == "function" then
+        value = self.Normalize(value)
+    end
+    local changed = not valuesEqual(self.Value, value)
+    self.Value = value
+    if changed then
+        for _, link in ipairs(self._links) do
+            if not link._pushing then
+                link._pushing = true
+                pushLink(link, value)
+                link._pushing = false
+            end
+        end
+        evaluateDepsOf(self)
+    end
+    if fireCallback ~= false then
+        if self.Callback then
+            self.Callback(value)
+        end
+        for _, fn in ipairs(self._subs) do
+            fn(value)
+        end
+    end
+    return self
+end
+
+function StateClass:Subscribe(fn)
+    if type(fn) ~= "function" then
+        return function() end
+    end
+    table.insert(self._subs, fn)
+    return function()
+        removeFrom(self._subs, fn)
+    end
+end
+
+function StateClass:Bind(target, opts)
+    if target == nil then
+        return nil
+    end
+    opts = opts or {}
+    local link = {
+        State = self,
+        Target = target,
+        ToState = type(opts.ToState) == "function" and opts.ToState or nil,
+        ToOption = type(opts.ToOption) == "function" and opts.ToOption or nil,
+        _pushing = false,
+    }
+    table.insert(self._links, link)
+    if isThorState(target) then
+        target._links = target._links or {}
+        table.insert(target._links, link)
+    elseif type(target) == "table" then
+        target._links = target._links or {}
+        table.insert(target._links, link)
+    end
+    -- sync awal: state menang; state kosong (nil) → adopsi nilai target
+    if self.Value == nil then
+        self.Value = sourceValue(target)
+    end
+    link._pushing = true
+    pushLink(link, self.Value)
+    link._pushing = false
+    return link
+end
+
+--  BindMany({ elemA, elemB, {Element = elemC, ToOption = fn}, ... })
+function StateClass:BindMany(list, opts)
+    for _, t in ipairs(list or {}) do
+        if type(t) == "table" and (t.Element or t.Target) and t.Get == nil and t.Set == nil then
+            self:Bind(t.Element or t.Target, t)
+        else
+            self:Bind(t, opts)
+        end
+    end
+end
+
+function StateClass:Unbind(target)
+    for i = #self._links, 1, -1 do
+        local link = self._links[i]
+        if link.Target == target then
+            table.remove(self._links, i)
+            if type(target) == "table" and target._links then
+                removeFrom(target._links, link)
+            end
+        end
+    end
+end
+
+--  ── Grup eksklusif (radio) ──
+--  local mode = ThorUi:CreateGroup({ KeepNone = true })
+--  Tab:AddToggle({ Name = "A", Group = mode }) ...
+--  mode:Get() → toggle aktif · mode:Set(el) · mode:Clear()
+function ThorUi:CreateGroup(cfg)
+    cfg = cfg or {}
+    local group = {
+        _kind = "ThorGroup",
+        Name = tostring(cfg.Name or "Group"),
+        KeepNone = cfg.KeepNone ~= false,
+        Options = {},
+        Active = nil,
+    }
+    function group:Set(el)
+        for _, other in ipairs(group.Options) do
+            if other == el then
+                other:Set(true)
+            elseif other.Get and other:Get() == true then
+                other:Set(false)
+            end
+        end
+    end
+    function group:Get()
+        return group.Active
+    end
+    function group:Clear()
+        for _, other in ipairs(group.Options) do
+            if other.Get and other:Get() == true then
+                other:Set(false)
+            end
+        end
+        group.Active = nil
+    end
+    table.insert(AllGroups, group)
+    return group
 end
 
 --// ────────────────────────── State library-level ───────────────────────────
@@ -1162,6 +1664,210 @@ function ThorUi:SetToggleVisible(visible)
     end
 end
 
+--// ────────────────── v2.3.0: TEMA (merge sebelum CreateWindow) ─────────────
+--  ThorUi:SetTheme({ Accent = Color3.fromRGB(...) }) — gabungkan patch ke
+--  tema aktif. Panggil SEBELUM CreateWindow: elemen mengambil warna saat
+--  dibuat, jadi perubahan setelah window ada tidak mengecat ulang.
+function ThorUi:SetTheme(patch)
+    if type(patch) == "table" then
+        for k, v in pairs(patch) do
+            Theme[k] = v
+        end
+    end
+    return Theme
+end
+
+--// ──────────── v2.3.0: QUICK ACTION (tombol aksi melayang) ────────────────
+--  Tombol bundar kecil di deret pinggir layar — pintasan aksi favorit yang
+--  selalu terlihat walau window tertutup. Seluruh deret bisa DIGESER
+--  (drag), ketuk = eksekusi. Contoh:
+--      ThorUi:AddQuickAction({ Icon = "⚡", Name = "Rejoin",
+--          Callback = function() ... end })
+local QUICK_SIZE = 36
+local function ensureQuickDock()
+    if _state.QuickDock and _state.QuickDock.Parent then
+        return _state.QuickDock
+    end
+    local gui = ensureGui()
+    local reg = _state.Registry
+
+    local dock = Create("Frame", {
+        Name = "ThorUi_QuickDock",
+        AnchorPoint = Vector2.new(1, 0.5),
+        Position = UDim2.new(1, -14, 0.28, 0),
+        Size = UDim2.fromOffset(QUICK_SIZE, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ZIndex = 40,
+        Parent = gui,
+    })
+    Create("UIListLayout", {
+        Padding = UDim.new(0, 8),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        HorizontalAlignment = Enum.HorizontalAlignment.Center,
+        Parent = dock,
+    })
+    _state.QuickDock = dock
+
+    -- drag deret: posisi dikunci offset murni (formula engine, tanpa
+    -- AbsolutePosition — anti-loncat di semua lingkungan, pola tombol ⚡)
+    reg:Connect(dock:GetPropertyChangedSignal("AbsoluteSize"), function()
+        -- ukuran berubah (tombol ditambah) → pastikan tetap di dalam layar
+        local vp = GetViewport()
+        local p = dock.Position
+        local x = math.min(p.X.Offset, vp.X - 20)
+        local y = math.clamp(p.Y.Offset, 40, math.max(40, vp.Y - 40))
+        dock.Position = UDim2.new(0, x, 0, y)
+    end)
+    return dock
+end
+
+--  Handler drag + tap untuk satu tombol quick action (menggerakkan DERET).
+local function bindQuickButton(reg, btn, onTap)
+    local dragging = false
+    local moved = false
+    local startInput = nil
+    local startVec = nil
+    local startPos = nil -- posisi {x,y} TENGAH deret saat mulai
+
+    reg:Connect(btn.InputBegan, function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            if dragging then
+                return
+            end
+            dragging = true
+            moved = false
+            startInput = input
+            startVec = input.Position
+            local dock = btn.Parent
+            local p = dock.Position
+            local ps = (dock.Parent and dock.Parent.AbsoluteSize.X > 0)
+                and dock.Parent.AbsoluteSize
+                or GetViewport()
+            startPos = Vector2.new(
+                p.X.Scale * ps.X + p.X.Offset,
+                p.Y.Scale * ps.Y + p.Y.Offset
+            )
+            dock.Position = UDim2.new(0, startPos.X, 0, startPos.Y)
+        end
+    end)
+
+    reg:Connect(UserInputService.InputChanged, function(input)
+        if not dragging or not gestureInput(startInput, input) then
+            return
+        end
+        if startVec.X == 0 and startVec.Y == 0 and startVec.Z == 0 then
+            startVec = input.Position
+        end
+        local delta = input.Position - startVec
+        if math.abs(delta.X) > 6 or math.abs(delta.Y) > 6 then
+            moved = true
+        end
+        local dock = btn.Parent
+        local vp = GetViewport()
+        local halfX = QUICK_SIZE * 0.5
+        local halfY = math.max(dock.AbsoluteSize.Y * 0.5, QUICK_SIZE * 0.5)
+        local nx = math.clamp(startPos.X + delta.X, halfX + 4, math.max(halfX + 4, vp.X - halfX - 4))
+        local ny = math.clamp(startPos.Y + delta.Y, halfY + 4, math.max(halfY + 4, vp.Y - halfY - 4))
+        dock.Position = UDim2.new(0, math.floor(nx + 0.5), 0, math.floor(ny + 0.5))
+    end)
+
+    reg:Connect(UserInputService.InputEnded, function(input)
+        if not dragging or not gestureEnded(startInput, input) then
+            return
+        end
+        dragging = false
+        if not moved then
+            onTap()
+        end
+    end)
+end
+
+--  ThorUi:AddQuickAction({ Icon, Name, Callback }) → { Remove() }
+function ThorUi:AddQuickAction(cfg)
+    cfg = cfg or {}
+    if type(cfg.Callback) ~= "function" then
+        return nil
+    end
+    local dock = ensureQuickDock()
+    local reg = _state.Registry
+
+    local btn = Create("TextButton", {
+        Text = "",
+        AutoButtonColor = false,
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Size = UDim2.fromOffset(QUICK_SIZE, QUICK_SIZE),
+        BackgroundColor3 = Theme.Card,
+        BorderSizePixel = 0,
+        LayoutOrder = #dock:GetChildren(),
+        Parent = dock,
+    })
+    Corner(btn, UDim.new(1, 0))
+    Stroke(btn, { Color = Theme.AccentGold, Thickness = 1, Transparency = 0.25 })
+    local scale = Create("UIScale", { Parent = btn })
+    Create("TextLabel", {
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0, 1),
+        Size = UDim2.new(1, 0, 1, 0),
+        Text = tostring(cfg.Icon or "⚡"),
+        Font = Theme.FontBold,
+        TextSize = 15,
+        TextColor3 = Theme.AccentGold,
+        Parent = btn,
+    })
+
+    -- tooltip nama (hanya perangkat bermouse)
+    if HOVER_FOR_MOUSE then
+        local tip = Create("TextLabel", {
+            BackgroundColor3 = Theme.BackgroundAlt,
+            BorderSizePixel = 0,
+            AnchorPoint = Vector2.new(1, 0.5),
+            Position = UDim2.new(0, -12, 0.5, 0),
+            Size = UDim2.new(0, math.max(40, #tostring(cfg.Name or "Aksi") * 7 + 16), 0, 22),
+            Text = tostring(cfg.Name or "Aksi"),
+            Font = Theme.FontMedium,
+            TextSize = 11,
+            TextColor3 = Theme.Text,
+            Visible = false,
+            ZIndex = 6,
+            Parent = btn,
+        })
+        Corner(tip, 6)
+        Stroke(tip, { Color = Theme.StrokeDim, Transparency = 0.3 })
+        reg:Connect(btn.MouseEnter, function()
+            tip.Visible = true
+            Tween(reg, btn, TI_HOVER, { BackgroundColor3 = Theme.CardHover })
+        end)
+        reg:Connect(btn.MouseLeave, function()
+            tip.Visible = false
+            Tween(reg, btn, TI_HOVER, { BackgroundColor3 = Theme.Card })
+        end)
+    end
+
+    bindQuickButton(reg, btn, function()
+        Tween(reg, scale, TweenInfo.new(0.07, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Scale = 1.2 })
+        task.delay(0.08, function()
+            if btn.Parent then
+                Tween(reg, scale, TweenInfo.new(0.16, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
+            end
+        end)
+        Zap(reg, btn, Theme.AccentGold, UDim.new(1, 0))
+        cfg.Callback()
+    end)
+
+    return {
+        Remove = function()
+            btn:Destroy()
+            if _state.QuickDock and #_state.QuickDock:GetChildren() == 0 then
+                _state.QuickDock:Destroy()
+                _state.QuickDock = nil
+            end
+        end,
+    }
+end
+
 --// ────────────────────────── SPLASH SCREEN (tema Thor) ─────────────────────────────
 --  Layar pembuka: logo ⚡ memantul + progress bar petir + status menggemas.
 --  playSplash(onDone) tidak memblokir; onDone dipanggil setelah fade-out.
@@ -1446,6 +2152,21 @@ function TabClass:_track(element)
     -- v2.2.1: elemen otomatis menjadi ANGGOTA menu (section) aktif terakhir
     tab:_own(element)
     function element:Remove()
+        -- v2.3.0: anak2 (AddChild) dihapus dulu — registry & kaitan
+        -- state/dependensi/grup mereka ikut bersih sebelum kartu hancur
+        if self.Children then
+            local kids = {}
+            for _, c in ipairs(self.Children) do
+                kids[#kids + 1] = c
+            end
+            for _, c in ipairs(kids) do
+                if type(c.Remove) == "function" then
+                    c:Remove()
+                end
+            end
+        end
+        -- v2.3.0: lepas dari registry State/Depends/Group
+        unregisterElement(self)
         if self.Registry then
             self.Registry:Clean()
         end
@@ -1507,6 +2228,10 @@ function TabClass:ApplyFilter(query)
             -- v2.2.1: menu sedang di-minimize → anggotanya TETAP tersembunyi
             -- (pencarian tidak membuka lipatan menu)
             if el.Section and el.Section.Collapsed then
+                visible = false
+            end
+            -- v2.3.0: disembunyikan oleh Depends → tetap sembunyi
+            if el._depVisible == false then
                 visible = false
             end
             el.Instance.Visible = visible
@@ -1647,16 +2372,262 @@ local function attachDescription(card, order)
     end
 end
 
+--// ──────────────────── v2.3.0: SUB-ROW (Element:AddChild) ──────────────────
+--  Setiap elemen interaktif bisa punya ANAK (elemen bertingkat):
+--      toggle:AddChild("Slider", { Name = "Kecepatan", Min = 0, Max = 100 })
+--  Anak tampil di dalam kartu induk, terinden 16px, dibuka/ditutup lewat
+--  panah kecil di kiri judul (chevron tergambar — konsisten anti-tofu).
+--  API induk: AddChild(kind, cfg) · SetExpanded(bool) · ToggleExpanded()
+--             IsExpanded() · .Children
+local CHILD_FACTORIES = {
+    Button      = "AddButton",
+    Toggle      = "AddToggle",
+    Slider      = "AddSlider",
+    Dropdown    = "AddDropdown",
+    TextInput   = "AddTextInput",
+    Keybind     = "AddKeybind",
+    ColorPicker = "AddColorPicker",
+    Label       = "AddLabel",
+    Paragraph   = "AddParagraph",
+    List        = "AddList",
+    ModelView   = "AddModelView",
+    Canvas      = "AddCanvas",
+}
+
+local function normalizeChildKind(kind)
+    local k = tostring(kind or "")
+    k = k:gsub("^%l", string.upper)
+    return CHILD_FACTORIES[k] and k or nil
+end
+
+--  Dipanggil pabrik elemen SETELAH :_track(element):
+--    EnableChildren(tab, element, cfg, row, titleLabel, "row"|"card", yCenter)
+--  mode "row"  → chevron di tengah vertikal baris judul (row = Frame baris)
+--  mode "card" → judul menempel langsung di kartu (chevron di yCenter px)
+--  Sekaligus memasang kaitan Depends (visibilitas otomatis) dari cfg.
+local function EnableChildren(tab, element, cfg, row, titleLabel, mode, yCenter)
+    element.Children = {}
+
+    local subHost = nil   -- wadah anak (dibuat malas saat anak pertama)
+    local chevBtn = nil
+    local chevron, chevA, chevB = nil, nil, nil
+    local expanded = false
+
+    local function buildSubUI()
+        if subHost then
+            return
+        end
+        -- panah kecil di kiri judul (digambar — tanpa glyph font)
+        local parentRow = (mode == "card") and element.Instance or row
+        chevBtn = Create("TextButton", {
+            Name = "Expand",
+            Text = "",
+            AutoButtonColor = false,
+            BackgroundTransparency = 1,
+            AnchorPoint = Vector2.new(0, 0.5),
+            Size = UDim2.fromOffset(16, 16),
+            ZIndex = 5,
+            Parent = parentRow,
+        })
+        if mode == "card" then
+            chevBtn.Position = UDim2.new(0, -2, 0, yCenter or 9)
+        else
+            chevBtn.Position = UDim2.new(0, -2, 0.5, 0)
+        end
+        chevron, chevA, chevB = ChevronIcon(chevBtn, {
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Position = UDim2.new(0.5, 0, 0.5, 0),
+            Size = 9,
+            Color = Theme.TextDim,
+        })
+        chevron.Rotation = -90 -- terlipat: panah menghadap kanan
+        -- geser judul ke kanan agar tidak bertabrakan dengan panah
+        if titleLabel then
+            local p = titleLabel.Position
+            titleLabel.Position = UDim2.new(p.X.Scale, p.X.Offset + 14, p.Y.Scale, p.Y.Offset)
+            titleLabel.Size = UDim2.new(
+                titleLabel.Size.X.Scale,
+                titleLabel.Size.X.Offset - 14,
+                titleLabel.Size.Y.Scale,
+                titleLabel.Size.Y.Offset
+            )
+        end
+        element.Registry:Connect(chevBtn.Activated, function()
+            element:ToggleExpanded()
+        end)
+        -- wadah anak: terinden 16px + garis pemandu vertikal tipis di kiri
+        subHost = Create("Frame", {
+            Name = "SubRows",
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 0, 0),
+            AutomaticSize = Enum.AutomaticSize.Y,
+            Visible = false,
+            LayoutOrder = 40,
+            Parent = element.Instance,
+        })
+        Create("UIListLayout", {
+            Padding = UDim.new(0, 4),
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            Parent = subHost,
+        })
+        Create("UIPadding", {
+            PaddingLeft = UDim.new(0, 16),
+            Parent = subHost,
+        })
+        local guide = Create("Frame", {
+            AnchorPoint = Vector2.new(0, 0.5),
+            Position = UDim2.new(0, 4, 0.5, 0),
+            Size = UDim2.fromOffset(2, 0),
+            BackgroundColor3 = Theme.White,
+            BorderSizePixel = 0,
+            Parent = subHost,
+        })
+        Corner(guide, UDim.new(1, 0))
+        Gradient(guide, Theme.Accent, Theme.AccentGold, 90, NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0),
+            NumberSequenceKeypoint.new(0.5, 0.55),
+            NumberSequenceKeypoint.new(1, 0),
+        }))
+        -- garis pemandu mengikuti tinggi konten anak
+        element.Registry:Connect(subHost:GetPropertyChangedSignal("AbsoluteContentSize"), function()
+            local lay = subHost:FindFirstChildOfClass("UIListLayout")
+            local h = lay and lay.AbsoluteContentSize.Y or 0
+            guide.Size = UDim2.fromOffset(2, math.max(0, h))
+        end)
+    end
+
+    --  Proxy "tab" untuk membangun anak di dalam subHost: pabrik elemen
+    --  (AddToggle dll.) bekerja normal, tapi kartu anak masuk ke subHost,
+    --  tetap terdaftar di Elements/membership section tab asal (filter &
+    --  lipatan section tetap berfungsi), dan :Remove() anak juga keluar
+    --  dari daftar anak induk.
+    local proxy = nil
+    local function ensureProxy()
+        if proxy then
+            return proxy
+        end
+        proxy = setmetatable({
+            Window = tab.Window,
+            Container = subHost,
+            Elements = tab.Elements,
+            Sections = tab.Sections,
+            Order = 0,
+            FilterQuery = "",
+            _parentElement = element,
+        }, TabClass)
+        function proxy:_track(child)
+            table.insert(tab.Elements, child)
+            tab:_own(child)
+            child._parentElement = element
+            table.insert(element.Children, child)
+            function child:Remove()
+                if self.Children then
+                    local kids = {}
+                    for _, c in ipairs(self.Children) do
+                        kids[#kids + 1] = c
+                    end
+                    for _, c in ipairs(kids) do
+                        if type(c.Remove) == "function" then
+                            c:Remove()
+                        end
+                    end
+                end
+                unregisterElement(self)
+                if self.Registry then
+                    self.Registry:Clean()
+                end
+                if self.Instance and self.Instance.Parent then
+                    self.Instance:Destroy()
+                end
+                for i, el in ipairs(tab.Elements) do
+                    if el == self then
+                        table.remove(tab.Elements, i)
+                        break
+                    end
+                end
+                local sec = self.Section
+                if sec and sec.Members then
+                    for i, m in ipairs(sec.Members) do
+                        if m == self then
+                            table.remove(sec.Members, i)
+                            break
+                        end
+                    end
+                end
+                for i, c in ipairs(element.Children) do
+                    if c == self then
+                        table.remove(element.Children, i)
+                        break
+                    end
+                end
+            end
+        end
+        return proxy
+    end
+
+    function element:AddChild(kind, childCfg)
+        local k = normalizeChildKind(kind)
+        if not k then
+            return nil
+        end
+        buildSubUI()
+        local p = ensureProxy()
+        p._currentSection = tab._currentSection -- anak ikut section aktif
+        local factory = TabClass[CHILD_FACTORIES[k]]
+        local child = factory(p, childCfg or {})
+        if child then
+            child.Instance.LayoutOrder = #element.Children
+        end
+        return child
+    end
+
+    function element:SetExpanded(v)
+        if not subHost then
+            return
+        end
+        expanded = v == true
+        subHost.Visible = expanded
+        local c = expanded and Theme.Accent or Theme.TextDim
+        if chevBtn then
+            Tween(element.Registry, chevron, TI_HOVER, { Rotation = expanded and 0 or -90 })
+            Tween(element.Registry, chevA, TI_HOVER, { BackgroundColor3 = c })
+            Tween(element.Registry, chevB, TI_HOVER, { BackgroundColor3 = c })
+        end
+    end
+
+    function element:ToggleExpanded()
+        element:SetExpanded(not expanded)
+    end
+
+    function element:IsExpanded()
+        return expanded
+    end
+
+    --  v2.3.0: Depends — baris ini muncul/hilang otomatis mengikuti sumber
+    element.SetDependency = function(_, dep)
+        registerDependency(element, dep)
+    end
+    element.ClearDependency = function(_)
+        clearDependency(element)
+    end
+    if cfg and cfg.Depends then
+        registerDependency(element, cfg.Depends)
+    end
+end
+
 --// ─────────────────────────── Elemen: BUTTON ───────────────────────────────
+--  v2.3.0: ConfirmText — klik dua tahap (klik 1 = "siapkan", klik 2 = eksekusi;
+--  otomatis batal setelah 2.5 detik) untuk aksi berisiko.
 function TabClass:AddButton(cfg)
     cfg = cfg or {}
     local reg = Registry.new()
     local card, stroke = self:_card("TextButton")
 
+    local baseText = tostring(cfg.Name or "Button")
     local label = Create("TextLabel", {
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 0, 18),
-        Text = cfg.Name or "Button",
+        Text = baseText,
         Font = Theme.FontMedium,
         TextSize = 13,
         TextColor3 = Theme.Text,
@@ -1669,11 +2640,54 @@ function TabClass:AddButton(cfg)
 
     cardHover(reg, card, stroke)
 
-    reg:Connect(card.Activated, function()
-        Zap(reg, card, Theme.Accent, 10)
+    -- mode konfirmasi dua tahap
+    local confirmText = cfg.ConfirmText ~= nil and tostring(cfg.ConfirmText)
+        or (cfg.Confirm == true and "Yakin?" or nil)
+    local armed = false
+    local armToken = 0
+
+    local function disarm()
+        armed = false
+        label.Text = baseText
+        label.TextColor3 = Theme.Text
+        Tween(reg, stroke, TI_HOVER, { Color = Theme.StrokeDim, Transparency = 0.35 })
+    end
+
+    local function arm()
+        armed = true
+        armToken = armToken + 1
+        label.Text = confirmText
+        label.TextColor3 = Theme.AccentGold
+        Tween(reg, stroke, TI_HOVER, { Color = Theme.AccentGold, Transparency = 0 })
+        Zap(reg, card, Theme.AccentGold, 10)
+        -- batal otomatis setelah 2.5 detik tanpa aktivitas
+        local token = armToken
+        task.delay(2.5, function()
+            if armed and armToken == token and card.Parent then
+                disarm()
+            end
+        end)
+    end
+
+    local function fire()
         if cfg.Callback then
             cfg.Callback()
         end
+    end
+
+    reg:Connect(card.Activated, function()
+        if confirmText then
+            if armed then
+                disarm()
+                Zap(reg, card, Theme.Accent, 10)
+                fire()
+                return
+            end
+            arm()
+            return
+        end
+        Zap(reg, card, Theme.Accent, 10)
+        fire()
     end)
 
     local element = {
@@ -1685,18 +2699,25 @@ function TabClass:AddButton(cfg)
             setDesc(t)
         end,
         Get = function(_)
-            return label.Text
+            return baseText
         end,
         Set = function(_, name)
-            label.Text = tostring(name)
+            baseText = tostring(name)
+            if not armed then
+                label.Text = baseText
+            end
         end,
         Fire = function(_)
-            if cfg.Callback then
-                cfg.Callback()
+            fire()
+        end,
+        ResetConfirm = function(_)
+            if confirmText and armed then
+                disarm()
             end
         end,
     }
     self:_track(element)
+    EnableChildren(self, element, cfg, nil, label, "card", 9)
     return element
 end
 
@@ -1713,7 +2734,7 @@ function TabClass:AddToggle(cfg)
         LayoutOrder = 1,
         Parent = card,
     })
-    Create("TextLabel", {
+    local titleLabel = Create("TextLabel", {
         BackgroundTransparency = 1,
         Size = UDim2.new(1, -64, 1, 0),
         Text = cfg.Name or "Toggle",
@@ -1773,6 +2794,14 @@ function TabClass:AddToggle(cfg)
     render(true)
     cardHover(reg, card, stroke)
 
+    -- v2.3.0: nilai berubah (apa pun sumbernya) → grup radio + pipeline
+    -- State/Depends. Dipisah dari callback user supaya :Set silent pun
+    -- tetap menyinkronkan tampilan & dependensi.
+    local function afterChange()
+        syncGroup(element)
+        notifyChange(element)
+    end
+
     reg:Connect(card.Activated, function()
         state.Value = not state.Value
         render(false)
@@ -1780,6 +2809,7 @@ function TabClass:AddToggle(cfg)
         if state.Callback then
             state.Callback(state.Value)
         end
+        afterChange()
     end)
 
     local element = {
@@ -1799,17 +2829,84 @@ function TabClass:AddToggle(cfg)
             if silent ~= true and state.Callback then
                 state.Callback(state.Value)
             end
+            afterChange()
         end,
     }
     self:_track(element)
+    -- v2.3.0: grup eksklusif (radio) — maksimal satu toggle aktif
+    if type(cfg.Group) == "table" and cfg.Group.Options then
+        element._group = cfg.Group
+        table.insert(cfg.Group.Options, element)
+        if state.Value then
+            syncGroup(element)
+        end
+    end
+    EnableChildren(self, element, cfg, row, titleLabel, "row")
     return element
 end
 
 --// ─────────────────────────── Elemen: SLIDER ───────────────────────────────
+--  v2.3.0: UNITS multi-satuan + ketik nilai eksak + setter runtime.
+--  Nilai internal (state.Value & callback) SELALU dalam satuan dasar;
+--  tampilan dikonversi via FromBase/ToBase per satuan.
 function TabClass:AddSlider(cfg)
     cfg = cfg or {}
     local reg = Registry.new()
     local card, stroke = self:_card()
+
+    -- ── normalisasi konfigurasi UNITS ──
+    --  Shorthand: Units = "m" · Units = { "m", "km" }
+    --  Lengkap  : Units = { Options = { {Name="m", Suffix="m"},
+    --      {Name="km", Suffix="km", FromBase=fn, ToBase=fn, Decimals=2} },
+    --      Default = "km", Callback = fn(namaSatuan) }
+    local unitOptions, unitCallback
+    do
+        local u = cfg.Units
+        if type(u) == "string" then
+            u = { Options = { u } }
+        elseif type(u) == "table" and u.Options == nil and u.List == nil and #u > 0 then
+            u = { Options = u }
+        end
+        if type(u) == "table" then
+            unitCallback = type(u.Callback) == "function" and u.Callback or nil
+            local rawList = u.Options or u.List
+            unitOptions = {}
+            if type(rawList) == "table" then
+                for _, entry in ipairs(rawList) do
+                    if type(entry) == "string" or type(entry) == "number" then
+                        table.insert(unitOptions, {
+                            Name = tostring(entry), Suffix = tostring(entry),
+                        })
+                    elseif type(entry) == "table" then
+                        local name = tostring(entry.Name or entry.Text or entry.Suffix or "Unit")
+                        table.insert(unitOptions, {
+                            Name = name,
+                            Suffix = entry.Suffix ~= nil and tostring(entry.Suffix) or name,
+                            Prefix = entry.Prefix ~= nil and tostring(entry.Prefix) or nil,
+                            Format = type(entry.Format) == "function" and entry.Format or nil,
+                            FromBase = type(entry.FromBase) == "function" and entry.FromBase or nil,
+                            ToBase = type(entry.ToBase) == "function" and entry.ToBase or nil,
+                            Decimals = tonumber(entry.Decimals),
+                        })
+                    end
+                end
+            end
+        end
+    end
+    local unitCount = unitOptions and #unitOptions or 0
+    local currentUnit = nil
+    if unitCount > 0 then
+        local wanted = (type(cfg.Units) == "table" and cfg.Units.Default ~= nil)
+            and tostring(cfg.Units.Default) or ""
+        for _, uo in ipairs(unitOptions) do
+            if uo.Name == wanted then
+                currentUnit = uo
+                break
+            end
+        end
+        currentUnit = currentUnit or unitOptions[1]
+    end
+    local hasChip = unitCount > 1
 
     local row1 = Create("Frame", {
         BackgroundTransparency = 1,
@@ -1817,9 +2914,9 @@ function TabClass:AddSlider(cfg)
         LayoutOrder = 1,
         Parent = card,
     })
-    Create("TextLabel", {
+    local titleLabel = Create("TextLabel", {
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, -90, 1, 0),
+        Size = UDim2.new(1, hasChip and -130 or -90, 1, 0),
         Text = cfg.Name or "Slider",
         Font = Theme.FontMedium,
         TextSize = 13,
@@ -1828,12 +2925,14 @@ function TabClass:AddSlider(cfg)
         TextTruncate = Enum.TextTruncate.AtEnd,
         Parent = row1,
     })
+    --  v2.3.0: nilai RichText — ANGKA emas, awalan/satuan redup kebiruan
     local valueLabel = Create("TextLabel", {
-        BackgroundTransparency = 1, -- FIX v2.1.5: hilangkan kotak abu-abu di belakang "124 spd"
+        BackgroundTransparency = 1,
         AnchorPoint = Vector2.new(1, 0),
-        Position = UDim2.new(1, 0, 0, 0),
-        Size = UDim2.new(0, 90, 1, 0),
+        Position = UDim2.new(1, hasChip and -38 or 0, 0, 0),
+        Size = UDim2.new(0, hasChip and 80 or 90, 1, 0),
         Text = "",
+        RichText = true,
         Font = Theme.FontMedium,
         TextSize = 12,
         TextColor3 = Theme.AccentGold,
@@ -1841,6 +2940,26 @@ function TabClass:AddSlider(cfg)
         TextTruncate = Enum.TextTruncate.AtEnd,
         Parent = row1,
     })
+
+    -- chip pemilih satuan (hanya bila ada >1 satuan)
+    local unitChip, chipStroke
+    if hasChip then
+        unitChip = Create("TextButton", {
+            Text = currentUnit.Name,
+            AutoButtonColor = false,
+            AnchorPoint = Vector2.new(1, 0.5),
+            Position = UDim2.new(1, 0, 0.5, 0),
+            Size = UDim2.fromOffset(34, 16),
+            BackgroundColor3 = Theme.Background,
+            BorderSizePixel = 0,
+            Font = Theme.FontMedium,
+            TextSize = 10,
+            TextColor3 = Theme.TextDim,
+            Parent = row1,
+        })
+        Corner(unitChip, 4)
+        chipStroke = Stroke(unitChip, { Color = Theme.StrokeDim, Transparency = 0.3 })
+    end
 
     -- keterangan kecil di bawah judul
     local setDesc = attachDescription(card, 2)
@@ -1870,10 +2989,7 @@ function TabClass:AddSlider(cfg)
         Parent = track,
     })
     Corner(fill, UDim.new(1, 0))
-    -- FIX v2.1.4: gradien biru->emas (a) tertint background Accent sehingga
-    -- emas tak pernah muncul & bar tampak biru redup->HIJAU (terverifikasi
-    -- piksel screenshot user), (b) interpolasi sRGB biru->emas selalu
-    -- melintas abu kehijauan. Diganti gradien selaras-hue 'kilat menyala'.
+    -- gradien selaras-hue 'kilat menyala' (biru pekat -> biru terang)
     Gradient(fill, Color3.fromRGB(0, 170, 235), Color3.fromRGB(90, 220, 255), 90)
     local knob = Create("Frame", {
         AnchorPoint = Vector2.new(0.5, 0.5),
@@ -1885,7 +3001,7 @@ function TabClass:AddSlider(cfg)
         Parent = track,
     })
     Corner(knob, UDim.new(1, 0))
-    Stroke(knob, { Color = Theme.AccentGold, Thickness = 1, Transparency = 0.1 }) -- v2.1.4: emas
+    Stroke(knob, { Color = Theme.AccentGold, Thickness = 1, Transparency = 0.1 })
     local knobScale = Create("UIScale", { Parent = knob })
 
     -- area sentuh transparan menutupi SELURUH baris slider (ZIndex di atas
@@ -1916,17 +3032,50 @@ function TabClass:AddSlider(cfg)
         state.Value = state.Min
     end
 
+    local element -- didefinisi di bawah; apply/render merujuk via upvalue
+
+    -- angka dalam SATUAN TAMPILAN saat ini (sudah dikonversi)
+    local function displayNumber()
+        local v = state.Value
+        local u = currentUnit
+        if u then
+            if u.FromBase then
+                v = u.FromBase(v)
+            end
+            if u.Format then
+                return tostring(u.Format(v))
+            end
+            return formatValue(v, u.Decimals or state.Precision)
+        end
+        return formatValue(v, state.Precision)
+    end
+
     local function render()
         local span = state.Max - state.Min
         local rel = span > 0 and (state.Value - state.Min) / span or 0
         rel = math.clamp(rel, 0, 1)
         fill.Size = UDim2.new(rel, 0, 1, 0)
         knob.Position = UDim2.new(rel, 0, 0.5, 0)
-        valueLabel.Text = formatValue(state.Value, state.Precision) .. state.Suffix
+        -- angka emas + satuan/awalan redup (RichText)
+        local u = currentUnit
+        local prefix = (u and u.Prefix) or cfg.Prefix or ""
+        local suffix = (u and u.Suffix) or state.Suffix or ""
+        local parts = {}
+        if prefix ~= "" then
+            parts[#parts + 1] = rtColor(Theme.TextDim, prefix)
+        end
+        parts[#parts + 1] = rtColor(Theme.AccentGold, displayNumber())
+        if suffix ~= "" then
+            parts[#parts + 1] = rtColor(Theme.TextDim, suffix)
+        end
+        valueLabel.Text = #parts > 1 and table.concat(parts, " ") or parts[1]
     end
 
     local function apply(raw, silent)
-        local v = raw
+        local v = tonumber(raw)
+        if v == nil then
+            return
+        end
         local inc = state.Increment
         if inc and inc > 0 then
             v = math.floor(v / inc + 0.5) * inc
@@ -1937,6 +3086,172 @@ function TabClass:AddSlider(cfg)
         if silent ~= true and state.Callback then
             state.Callback(state.Value)
         end
+        notifyChange(element)
+    end
+
+    -- ── v2.3.0: ketik nilai eksak — klik angka → TextBox ──
+    local editBox = Create("TextBox", {
+        AnchorPoint = Vector2.new(1, 0),
+        Position = UDim2.new(1, hasChip and -38 or 0, 0, -1),
+        Size = UDim2.new(0, hasChip and 80 or 90, 1, 2),
+        BackgroundColor3 = Theme.BackgroundAlt,
+        BorderSizePixel = 0,
+        Text = "",
+        PlaceholderText = "angka",
+        TextSize = 12,
+        TextColor3 = Theme.AccentGold,
+        Font = Theme.FontMedium,
+        TextXAlignment = Enum.TextXAlignment.Right,
+        ClearTextOnFocus = false,
+        ClipsDescendants = true,
+        Visible = false,
+        ZIndex = 5,
+        Parent = row1,
+    })
+    Corner(editBox, 4)
+    local editStroke = Stroke(editBox, { Color = Theme.Accent, Transparency = 0 })
+    reg:Connect(editBox.FocusLost, function()
+        editBox.Visible = false
+        valueLabel.Visible = true
+        local n = tonumber(editBox.Text)
+        if n then
+            local u = currentUnit
+            if u and u.ToBase then
+                n = u.ToBase(n)
+            end
+            if math.abs(n - state.Value) > 1e-9 then
+                apply(n, false)
+            end
+        end
+    end)
+    local valueHit = Create("TextButton", {
+        Text = "",
+        AutoButtonColor = false,
+        BackgroundTransparency = 1,
+        AnchorPoint = Vector2.new(1, 0),
+        Position = UDim2.new(1, hasChip and -38 or 0, 0, 0),
+        Size = UDim2.new(0, hasChip and 80 or 90, 1, 0),
+        ZIndex = 4,
+        Parent = row1,
+    })
+    reg:Connect(valueHit.Activated, function()
+        if editBox.Visible then
+            return
+        end
+        editBox.Text = displayNumber()
+        valueLabel.Visible = false
+        editBox.Visible = true
+        task.defer(function()
+            if editBox.Visible and editBox.Parent then
+                editBox:CaptureFocus()
+            end
+        end)
+    end)
+
+    -- ── v2.3.0: daftar pilihan satuan (di dalam kartu, ala dropdown) ──
+    local unitHolder
+    local unitExpanded = false
+    local function setUnit(uo, silent)
+        if uo == currentUnit then
+            return
+        end
+        currentUnit = uo
+        if unitChip then
+            unitChip.Text = uo.Name
+        end
+        render()
+        if silent ~= true and unitCallback then
+            unitCallback(uo.Name)
+        end
+    end
+    if hasChip then
+        unitHolder = Create("Frame", {
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 0, 0),
+            AutomaticSize = Enum.AutomaticSize.Y,
+            Visible = false,
+            LayoutOrder = 4,
+            Parent = card,
+        })
+        Create("UIListLayout", {
+            Padding = UDim.new(0, 4),
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            Parent = unitHolder,
+        })
+        for idx, uo in ipairs(unitOptions) do
+            local ubtn = Create("TextButton", {
+                Text = "",
+                AutoButtonColor = false,
+                BackgroundColor3 = Theme.Card,
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 0, 26),
+                BorderSizePixel = 0,
+                LayoutOrder = idx,
+                Parent = unitHolder,
+            })
+            Corner(ubtn, 6)
+            local udot = Create("Frame", {
+                AnchorPoint = Vector2.new(0, 0.5),
+                Position = UDim2.new(0, 8, 0.5, 0),
+                Size = UDim2.fromOffset(6, 6),
+                BackgroundColor3 = Theme.TextDim,
+                BackgroundTransparency = 0.6,
+                BorderSizePixel = 0,
+                Parent = ubtn,
+            })
+            Corner(udot, UDim.new(1, 0))
+            local ulabel = Create("TextLabel", {
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, 20, 0, 0),
+                Size = UDim2.new(1, -24, 1, 0),
+                Text = uo.Name,
+                Font = Theme.FontMain,
+                TextSize = 12,
+                TextColor3 = Theme.TextDim,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                TextTruncate = Enum.TextTruncate.AtEnd,
+                Parent = ubtn,
+            })
+            local function paintUnit()
+                local sel = (uo == currentUnit)
+                udot.BackgroundColor3 = sel and Theme.Accent or Theme.TextDim
+                udot.BackgroundTransparency = sel and 0 or 0.6
+                ulabel.TextColor3 = sel and Theme.Text or Theme.TextDim
+            end
+            paintUnit()
+            reg:Connect(ubtn.MouseEnter, function()
+                Tween(reg, ubtn, TI_HOVER, { BackgroundTransparency = 0.6, BackgroundColor3 = Theme.CardHover })
+            end)
+            reg:Connect(ubtn.MouseLeave, function()
+                Tween(reg, ubtn, TI_HOVER, { BackgroundTransparency = 1, BackgroundColor3 = Theme.Card })
+            end)
+            reg:Connect(ubtn.Activated, function()
+                setUnit(uo)
+                paintUnit()
+                unitExpanded = false
+                unitHolder.Visible = false
+                if chipStroke then
+                    Tween(reg, chipStroke, TI_HOVER, { Color = Theme.StrokeDim, Transparency = 0.3 })
+                end
+                Zap(reg, ubtn, Theme.Accent, 6)
+            end)
+            -- repainting saat satuan berubah dari jalur lain
+            uo._paint = paintUnit
+        end
+        reg:Connect(unitChip.Activated, function()
+            unitExpanded = not unitExpanded
+            unitHolder.Visible = unitExpanded
+            for _, uo in ipairs(unitOptions) do
+                if uo._paint then
+                    uo._paint()
+                end
+            end
+            Tween(reg, chipStroke, TI_HOVER, {
+                Color = unitExpanded and Theme.Accent or Theme.StrokeDim,
+                Transparency = unitExpanded and 0 or 0.3,
+            })
+            Zap(reg, unitChip, Theme.AccentGold, 4)
+        end)
     end
 
     -- interaksi: mouse & sentuhan (UserInputService)
@@ -1981,7 +3296,7 @@ function TabClass:AddSlider(cfg)
 
     apply(state.Value, true)
 
-    local element = {
+    element = {
         Type = "Slider",
         Name = cfg.Name,
         Instance = card,
@@ -1995,12 +3310,47 @@ function TabClass:AddSlider(cfg)
         Set = function(_, value, silent)
             apply(tonumber(value) or state.Min, silent)
         end,
+        -- ── v2.3.0: setter runtime ──
+        SetDecimals = function(_, n)
+            state.Precision = math.max(0, math.floor(tonumber(n) or 0))
+            render()
+        end,
+        SetIncrement = function(_, n)
+            state.Increment = tonumber(n)
+        end,
+        SetRange = function(_, mn, mx)
+            state.Min = tonumber(mn) or state.Min
+            state.Max = tonumber(mx) or state.Max
+            if state.Min > state.Max then
+                state.Min, state.Max = state.Max, state.Min
+            end
+            apply(state.Value, true)
+        end,
+        SetSuffix = function(_, s)
+            state.Suffix = tostring(s or "")
+            render()
+        end,
+        SetUnit = function(_, name)
+            local wanted = tostring(name)
+            for _, uo in ipairs(unitOptions or {}) do
+                if uo.Name == wanted then
+                    setUnit(uo)
+                    if uo._paint then
+                        uo._paint()
+                    end
+                    return
+                end
+            end
+        end,
     }
     self:_track(element)
+    EnableChildren(self, element, cfg, row1, titleLabel, "row")
     return element
 end
 
 --// ─────────────────────────── Elemen: DROPDOWN ─────────────────────────────
+--  v2.3.0: Search (filter opsi), ApplyButton (mode aksi: pilih lalu terapkan),
+--  SetValues/AddValue/RemoveValue (kelola opsi saat runtime).
 function TabClass:AddDropdown(cfg)
     cfg = cfg or {}
     local reg = Registry.new()
@@ -2011,6 +3361,16 @@ function TabClass:AddDropdown(cfg)
         Value = multi and {} or nil,
         Callback = cfg.Callback,
     }
+    local element -- upvalue untuk pipeline notifyChange
+
+    -- mode aksi: pilihan TIDAK langsung menembak callback; tombol "Apply"
+    -- yang mengirimkannya (callback(nilai, indeks))
+    local applyLabel = nil
+    if cfg.ApplyButton then
+        applyLabel = (cfg.ApplyButton == true) and "Apply"
+            or tostring(cfg.ApplyButton)
+    end
+    local applyMode = applyLabel ~= nil
 
     -- header (klik untuk expand/collapse)
     local header = Create("TextButton", {
@@ -2021,7 +3381,7 @@ function TabClass:AddDropdown(cfg)
         LayoutOrder = 1,
         Parent = card,
     })
-    Create("TextLabel", {
+    local titleLabel = Create("TextLabel", {
         BackgroundTransparency = 1,
         Size = UDim2.new(1, -150, 1, 0),
         Text = cfg.Name or "Dropdown",
@@ -2033,7 +3393,7 @@ function TabClass:AddDropdown(cfg)
         Parent = header,
     })
     local selectLabel = Create("TextLabel", {
-        BackgroundTransparency = 1, -- FIX v2.1.5: hilangkan kotak abu-abu di belakang "Mjolnir"
+        BackgroundTransparency = 1, -- tanpa kotak abu di belakang nilai
         AnchorPoint = Vector2.new(1, 0),
         Position = UDim2.new(1, -14, 0, 0),
         Size = UDim2.new(0, 120, 1, 0),
@@ -2045,8 +3405,8 @@ function TabClass:AddDropdown(cfg)
         TextTruncate = Enum.TextTruncate.AtEnd,
         Parent = header,
     })
-    -- v2.2.2: panah DIGAMBAR (2 batang miring) — glyph "▾" dirender Roblox
-    -- sebagai KOTAK kosong (tofu) di sebagian perangkat (lihat ChevronIcon)
+    -- panah DIGAMBAR (2 batang miring) — glyph "▾" dirender Roblox sebagai
+    -- KOTAK kosong (tofu) di sebagian perangkat (lihat ChevronIcon)
     local arrow, arrowA, arrowB = ChevronIcon(header, {
         AnchorPoint = Vector2.new(1, 0.5),
         Position = UDim2.new(1, -1, 0.5, 0),
@@ -2073,8 +3433,37 @@ function TabClass:AddDropdown(cfg)
         Parent = holder,
     })
 
+    -- ── v2.3.0: kotak pencarian opsional di atas daftar opsi ──
+    local searchBox
+    if cfg.Search == true then
+        searchBox = Create("TextBox", {
+            Size = UDim2.new(1, 0, 0, 26),
+            BackgroundColor3 = Theme.Background,
+            BorderSizePixel = 0,
+            Text = "",
+            PlaceholderText = "Cari...",
+            PlaceholderColor3 = Theme.TextDim,
+            TextSize = 12,
+            TextColor3 = Theme.Text,
+            Font = Theme.FontMedium,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            ClearTextOnFocus = false,
+            ClipsDescendants = true,
+            LayoutOrder = 0,
+            Parent = holder,
+        })
+        Corner(searchBox, 6)
+        Create("UIPadding", {
+            PaddingLeft = UDim.new(0, 8),
+            PaddingRight = UDim.new(0, 8),
+            Parent = searchBox,
+        })
+        Stroke(searchBox, { Color = Theme.StrokeDim, Transparency = 0.3 })
+    end
+
     local options = {}
     local expanded = false
+    local applyBtn
 
     local function updateHeader()
         if multi then
@@ -2111,6 +3500,21 @@ function TabClass:AddDropdown(cfg)
         end
     end
 
+    --  v2.3.0: filter daftar opsi (dipakai search box & :Filter)
+    local function filterOptions(query)
+        local needle = tostring(query or ""):lower()
+        for _, opt in ipairs(options) do
+            if opt.Btn then
+                if needle == "" then
+                    opt.Btn.Visible = true
+                else
+                    opt.Btn.Visible = string.find(
+                        tostring(opt.Value):lower(), needle, 1, true) ~= nil
+                end
+            end
+        end
+    end
+
     local function setExpanded(v)
         expanded = v
         holder.Visible = v
@@ -2119,80 +3523,174 @@ function TabClass:AddDropdown(cfg)
         Tween(reg, arrowB, TI_HOVER, { BackgroundColor3 = c })
     end
 
-    for _, value in ipairs(cfg.Values or {}) do
-        local opt = { Value = value }
-        local btn = Create("TextButton", {
-            Text = "",
-            AutoButtonColor = false,
-            BackgroundColor3 = Theme.Card,
-            BackgroundTransparency = 1,
-            Size = UDim2.new(1, 0, 0, 28), -- 28px: area sentuh nyaman di jari
-            BorderSizePixel = 0,
-            LayoutOrder = #options + 1,
-            Parent = holder,
-        })
-        Corner(btn, 6)
-        opt.Btn = btn
-        opt.Dot = Create("Frame", {
-            AnchorPoint = Vector2.new(0, 0.5),
-            Position = UDim2.new(0, 8, 0.5, 0),
-            Size = UDim2.fromOffset(6, 6),
-            BackgroundColor3 = Theme.TextDim,
-            BackgroundTransparency = 0.6,
-            BorderSizePixel = 0,
-            Parent = btn,
-        })
-        Corner(opt.Dot, UDim.new(1, 0))
-        opt.Label = Create("TextLabel", {
-            BackgroundTransparency = 1,
-            Position = UDim2.new(0, 20, 0, 0),
-            Size = UDim2.new(1, -24, 1, 0),
-            Text = tostring(value),
-            Font = Theme.FontMain,
-            TextSize = 12,
-            TextColor3 = Theme.TextDim,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            TextTruncate = Enum.TextTruncate.AtEnd,
-            Parent = btn,
-        })
-
-        reg:Connect(btn.MouseEnter, function()
-            Tween(reg, btn, TI_HOVER, { BackgroundTransparency = 0.6, BackgroundColor3 = Theme.CardHover })
-        end)
-        reg:Connect(btn.MouseLeave, function()
-            Tween(reg, btn, TI_HOVER, { BackgroundTransparency = 1, BackgroundColor3 = Theme.Card })
-        end)
-
-        reg:Connect(btn.Activated, function()
-            if multi then
-                if contains(state.Value, value) then
-                    removeFrom(state.Value, value)
-                else
-                    table.insert(state.Value, value)
-                end
-                refresh()
-                updateHeader()
-                Zap(reg, btn, Theme.Accent, 6)
-                if state.Callback then
-                    local snapshot = {}
-                    for i, v in ipairs(state.Value) do
-                        snapshot[i] = v
-                    end
-                    state.Callback(snapshot)
-                end
-            else
-                state.Value = value
-                refresh()
-                updateHeader()
-                setExpanded(false)
-                Zap(reg, btn, Theme.Accent, 6)
-                if state.Callback then
-                    state.Callback(state.Value)
-                end
+    --  v2.3.0: bangun ulang baris opsi (dipakai saat create & SetValues)
+    local function buildOptions(values)
+        -- bersihkan baris lama (kecuali search box LayoutOrder 0)
+        for _, opt in ipairs(options) do
+            if opt.Btn then
+                opt.Btn:Destroy()
             end
-        end)
+        end
+        options = {}
+        if applyBtn then
+            applyBtn:Destroy()
+            applyBtn = nil
+        end
 
-        table.insert(options, opt)
+        for _, value in ipairs(values or {}) do
+            local opt = { Value = value }
+            local btn = Create("TextButton", {
+                Text = "",
+                AutoButtonColor = false,
+                BackgroundColor3 = Theme.Card,
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 0, 28), -- 28px: area sentuh nyaman di jari
+                BorderSizePixel = 0,
+                LayoutOrder = #options + 1,
+                Parent = holder,
+            })
+            Corner(btn, 6)
+            opt.Btn = btn
+            opt.Dot = Create("Frame", {
+                AnchorPoint = Vector2.new(0, 0.5),
+                Position = UDim2.new(0, 8, 0.5, 0),
+                Size = UDim2.fromOffset(6, 6),
+                BackgroundColor3 = Theme.TextDim,
+                BackgroundTransparency = 0.6,
+                BorderSizePixel = 0,
+                Parent = btn,
+            })
+            Corner(opt.Dot, UDim.new(1, 0))
+            opt.Label = Create("TextLabel", {
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, 20, 0, 0),
+                Size = UDim2.new(1, -24, 1, 0),
+                Text = tostring(value),
+                Font = Theme.FontMain,
+                TextSize = 12,
+                TextColor3 = Theme.TextDim,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                TextTruncate = Enum.TextTruncate.AtEnd,
+                Parent = btn,
+            })
+
+            reg:Connect(btn.MouseEnter, function()
+                Tween(reg, btn, TI_HOVER, { BackgroundTransparency = 0.6, BackgroundColor3 = Theme.CardHover })
+            end)
+            reg:Connect(btn.MouseLeave, function()
+                Tween(reg, btn, TI_HOVER, { BackgroundTransparency = 1, BackgroundColor3 = Theme.Card })
+            end)
+
+            reg:Connect(btn.Activated, function()
+                if multi then
+                    if contains(state.Value, value) then
+                        removeFrom(state.Value, value)
+                    else
+                        table.insert(state.Value, value)
+                    end
+                    refresh()
+                    updateHeader()
+                    Zap(reg, btn, Theme.Accent, 6)
+                    if not applyMode then
+                        if state.Callback then
+                            local snapshot = {}
+                            for i, v in ipairs(state.Value) do
+                                snapshot[i] = v
+                            end
+                            state.Callback(snapshot)
+                        end
+                        notifyChange(element)
+                    end
+                else
+                    state.Value = value
+                    refresh()
+                    updateHeader()
+                    if not applyMode then
+                        setExpanded(false)
+                    end
+                    Zap(reg, btn, Theme.Accent, 6)
+                    if not applyMode then
+                        if state.Callback then
+                            state.Callback(state.Value)
+                        end
+                        notifyChange(element)
+                    end
+                end
+            end)
+
+            table.insert(options, opt)
+        end
+
+        -- tombol Apply (mode aksi) di ujung daftar
+        if applyMode then
+            applyBtn = Create("TextButton", {
+                Text = "",
+                AutoButtonColor = false,
+                BackgroundColor3 = Theme.Card,
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 0, 28),
+                BorderSizePixel = 0,
+                LayoutOrder = #options + 1,
+                Parent = holder,
+            })
+            Corner(applyBtn, 6)
+            local applyStroke = Stroke(applyBtn, { Color = Theme.Accent, Transparency = 0.4 })
+            Create("TextLabel", {
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 1, 0),
+                Text = applyLabel,
+                Font = Theme.FontBold,
+                TextSize = 12,
+                TextColor3 = Theme.Accent,
+                Parent = applyBtn,
+            })
+            reg:Connect(applyBtn.MouseEnter, function()
+                Tween(reg, applyBtn, TI_HOVER, { BackgroundTransparency = 0.5, BackgroundColor3 = Theme.CardHover })
+                Tween(reg, applyStroke, TI_HOVER, { Transparency = 0 })
+            end)
+            reg:Connect(applyBtn.MouseLeave, function()
+                Tween(reg, applyBtn, TI_HOVER, { BackgroundTransparency = 1, BackgroundColor3 = Theme.Card })
+                Tween(reg, applyStroke, TI_HOVER, { Transparency = 0.4 })
+            end)
+            reg:Connect(applyBtn.Activated, function()
+                Zap(reg, applyBtn, Theme.AccentGold, 6)
+                setExpanded(false)
+                if state.Callback then
+                    if multi then
+                        local snapshot, indices = {}, {}
+                        for i, v in ipairs(state.Value) do
+                            snapshot[i] = v
+                        end
+                        for i, opt in ipairs(options) do
+                            if contains(state.Value, opt.Value) then
+                                indices[#indices + 1] = i
+                            end
+                        end
+                        state.Callback(snapshot, indices)
+                    else
+                        local idx = nil
+                        for i, opt in ipairs(options) do
+                            if state.Value == opt.Value then
+                                idx = i
+                                break
+                            end
+                        end
+                        state.Callback(state.Value, idx)
+                    end
+                end
+                notifyChange(element)
+            end)
+        end
+
+        filterOptions(searchBox and searchBox.Text or "")
+    end
+
+    buildOptions(cfg.Values or {})
+
+    if searchBox then
+        reg:Connect(searchBox:GetPropertyChangedSignal("Text"), function()
+            filterOptions(searchBox.Text)
+        end)
     end
 
     reg:Connect(header.Activated, function()
@@ -2211,7 +3709,7 @@ function TabClass:AddDropdown(cfg)
     refresh()
     updateHeader()
 
-    local element = {
+    element = {
         Type = "Dropdown",
         Name = cfg.Name,
         Instance = card,
@@ -2251,19 +3749,80 @@ function TabClass:AddDropdown(cfg)
                     state.Callback(state.Value)
                 end
             end
+            notifyChange(element)
+        end,
+        -- ── v2.3.0: kelola opsi saat runtime ──
+        SetValues = function(_, values)
+            local valid = {}
+            for _, v in ipairs(values or {}) do
+                valid[#valid + 1] = v
+            end
+            buildOptions(valid)
+            -- buang pilihan yang tidak lagi valid
+            if multi then
+                local kept = {}
+                for _, v in ipairs(state.Value) do
+                    if contains(valid, v) then
+                        kept[#kept + 1] = v
+                    end
+                end
+                state.Value = kept
+            elseif state.Value ~= nil and not contains(valid, state.Value) then
+                state.Value = nil
+            end
+            refresh()
+            updateHeader()
+        end,
+        AddValue = function(_, value)
+            for _, opt in ipairs(options) do
+                if opt.Value == value then
+                    return -- sudah ada
+                end
+            end
+            local list = {}
+            for _, opt in ipairs(options) do
+                list[#list + 1] = opt.Value
+            end
+            list[#list + 1] = value
+            buildOptions(list)
+            refresh()
+            updateHeader()
+        end,
+        RemoveValue = function(_, value)
+            local list = {}
+            for _, opt in ipairs(options) do
+                if opt.Value ~= value then
+                    list[#list + 1] = opt.Value
+                end
+            end
+            buildOptions(list)
+            if multi then
+                removeFrom(state.Value, value)
+            elseif state.Value == value then
+                state.Value = nil
+            end
+            refresh()
+            updateHeader()
+        end,
+        Filter = function(_, query)
+            if searchBox then
+                searchBox.Text = tostring(query or "")
+            else
+                filterOptions(query)
+            end
         end,
     }
     self:_track(element)
+    EnableChildren(self, element, cfg, header, titleLabel, "row")
     return element
 end
-
 --// ────────────────────────── Elemen: TEXTINPUT ─────────────────────────────
 function TabClass:AddTextInput(cfg)
     cfg = cfg or {}
     local reg = Registry.new()
     local card = self:_card()
 
-    Create("TextLabel", {
+    local titleLabel = Create("TextLabel", {
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 0, 16),
         Text = cfg.Name or "Input",
@@ -2317,6 +3876,7 @@ function TabClass:AddTextInput(cfg)
         if cfg.Callback then
             cfg.Callback(box.Text, enterPressed == true)
         end
+        notifyChange(element)
     end)
 
     local element = {
@@ -2332,9 +3892,11 @@ function TabClass:AddTextInput(cfg)
         end,
         Set = function(_, text)
             box.Text = tostring(text)
+            notifyChange(element)
         end,
     }
     self:_track(element)
+    EnableChildren(self, element, cfg, nil, titleLabel, "card", 8)
     return element
 end
 
@@ -2350,7 +3912,7 @@ function TabClass:AddKeybind(cfg)
         LayoutOrder = 1,
         Parent = card,
     })
-    Create("TextLabel", {
+    local titleLabel = Create("TextLabel", {
         BackgroundTransparency = 1,
         Size = UDim2.new(1, -140, 1, 0),
         Text = cfg.Name or "Keybind",
@@ -2417,6 +3979,7 @@ function TabClass:AddKeybind(cfg)
                 return
             end
             display()
+            notifyChange(element)
             return
         end
         -- mode normal: panggil callback saat tombol terikat ditekan
@@ -2460,14 +4023,26 @@ function TabClass:AddKeybind(cfg)
         Get = function(_)
             return state.Bind
         end,
+        Set = function(_, enumItem, silent)
+            if typeof(enumItem) == "EnumItem" or typeof(enumItem) == "EnumItemType" then
+                state.Bind = enumItem
+                display()
+                if silent ~= true and state.Callback then
+                    state.Callback(state.Bind, nil)
+                end
+                notifyChange(element)
+            end
+        end,
         SetKey = function(_, enumItem)
             if typeof(enumItem) == "EnumItem" then
                 state.Bind = enumItem
                 display()
+                notifyChange(element)
             end
         end,
     }
     self:_track(element)
+    EnableChildren(self, element, cfg, row, titleLabel, "row")
     return element
 end
 
@@ -2500,7 +4075,7 @@ function TabClass:AddColorPicker(cfg)
         LayoutOrder = 1,
         Parent = card,
     })
-    Create("TextLabel", {
+    local titleLabel = Create("TextLabel", {
         BackgroundTransparency = 1,
         Size = UDim2.new(1, -130, 1, 0),
         Text = cfg.Name or "Warna",
@@ -2689,6 +4264,7 @@ function TabClass:AddColorPicker(cfg)
         if state.Callback then
             state.Callback(currentColor())
         end
+        notifyChange(element)
     end
 
     local function updateHue(x)
@@ -2698,6 +4274,7 @@ function TabClass:AddColorPicker(cfg)
         if state.Callback then
             state.Callback(currentColor())
         end
+        notifyChange(element)
     end
 
     reg:Connect(svBox.InputBegan, function(input)
@@ -2778,10 +4355,12 @@ function TabClass:AddColorPicker(cfg)
                 if silent ~= true and state.Callback then
                     state.Callback(currentColor())
                 end
+                notifyChange(element)
             end
         end,
     }
     self:_track(element)
+    EnableChildren(self, element, cfg, header, titleLabel, "row")
     return element
 end
 
@@ -2877,6 +4456,7 @@ function TabClass:AddSection(cfg)
                 table.remove(members, i) -- anggota sudah dihancurkan
             else
                 m.Instance.Visible = not el.Collapsed
+                    and m._depVisible ~= false -- v2.3.0: hormati Depends
             end
         end
     end
@@ -3043,6 +4623,1011 @@ function TabClass:AddParagraph(cfg)
     -- v2.2.1: paragraph ikut menjadi anggota menu (section) aktif
     self:_own(el)
     return el
+end
+
+--// ──────────────────── Elemen: LIST (v2.3.0 — browser item) ────────────────
+--  Daftar item yang bisa DILACAK (Search), DIKELOMPOKKAN (Groups), dan
+--  DIPILIH (klik / Multi). Setiap item boleh punya badge kanan (TopRight),
+--  gambar sendiri (Image, rbxassetid milik pengguna — opsional), dan Id.
+--      Tab:AddList({ Name = "Inventaris", Search = true, Multi = false,
+--          Items = { "Stormbreaker",
+--              { Text = "Mjolnir", TopRight = "Legendary" } },
+--          OnItemClick = function(item, index, selected) end })
+function TabClass:AddList(cfg)
+    cfg = cfg or {}
+    local reg = Registry.new()
+    local card = self:_card()
+    local element -- upvalue untuk notifyChange
+
+    local multi = cfg.Multi == true
+    local selected = {} -- array item (normalisasi) yang terpilih
+    local itemRows = {} -- { {Item, Btn, Dot, Label, Badge, GroupFrame} }
+    local maxH = tonumber(cfg.MaxHeight) or 180
+
+    -- ── normalisasi item ──
+    local function normalizeItem(item)
+        if type(item) == "table" then
+            return {
+                Text = tostring(item.Text or item.Name or ""),
+                TopRight = item.TopRight ~= nil and tostring(item.TopRight) or nil,
+                Image = item.Image ~= nil and tostring(item.Image) or nil,
+                ImageColor = typeof(item.ImageColor) == "Color3" and item.ImageColor or nil,
+                Id = item.Id,
+            }
+        end
+        return { Text = tostring(item) }
+    end
+
+    local function itemMatchesSel(it, sel)
+        if it == sel then
+            return true
+        end
+        if type(sel) == "table" then
+            if sel.Id ~= nil then
+                return it.Id == sel.Id
+            end
+            return it.Text == tostring(sel.Text or sel)
+        end
+        return it.Text == tostring(sel)
+    end
+
+    local function isSelected(it)
+        for _, s in ipairs(selected) do
+            if itemMatchesSel(it, s) then
+                return true
+            end
+        end
+        return false
+    end
+
+    -- ── baris judul ──
+    local titleRow = Create("Frame", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 20),
+        LayoutOrder = 1,
+        Parent = card,
+    })
+    local titleLabel = Create("TextLabel", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, -90, 1, 0),
+        Text = cfg.Name or "List",
+        Font = Theme.FontMedium,
+        TextSize = 13,
+        TextColor3 = Theme.Text,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextTruncate = Enum.TextTruncate.AtEnd,
+        Parent = titleRow,
+    })
+    local countLabel = Create("TextLabel", {
+        BackgroundTransparency = 1,
+        AnchorPoint = Vector2.new(1, 0),
+        Position = UDim2.new(1, 0, 0, 0),
+        Size = UDim2.new(0, 90, 1, 0),
+        Text = "",
+        Font = Theme.FontMain,
+        TextSize = 11,
+        TextColor3 = Theme.TextDim,
+        TextXAlignment = Enum.TextXAlignment.Right,
+        TextTruncate = Enum.TextTruncate.AtEnd,
+        Parent = titleRow,
+    })
+
+    local setDesc = attachDescription(card, 2)
+    setDesc(cfg.Description)
+
+    -- ── kotak pencarian (opsional) ──
+    local searchBox
+    if cfg.Search == true then
+        searchBox = Create("TextBox", {
+            Size = UDim2.new(1, 0, 0, 26),
+            BackgroundColor3 = Theme.Background,
+            BorderSizePixel = 0,
+            Text = "",
+            PlaceholderText = "Cari...",
+            PlaceholderColor3 = Theme.TextDim,
+            TextSize = 12,
+            TextColor3 = Theme.Text,
+            Font = Theme.FontMedium,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            ClearTextOnFocus = false,
+            ClipsDescendants = true,
+            LayoutOrder = 3,
+            Parent = card,
+        })
+        Corner(searchBox, 6)
+        Create("UIPadding", {
+            PaddingLeft = UDim.new(0, 8),
+            PaddingRight = UDim.new(0, 8),
+            Parent = searchBox,
+        })
+        Stroke(searchBox, { Color = Theme.StrokeDim, Transparency = 0.3 })
+    end
+
+    -- ── scroll daftar item ──
+    local scroll = Create("ScrollingFrame", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 0),
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        AutomaticCanvasSize = Enum.AutomaticSize.Y,
+        ScrollBarThickness = 4,
+        ScrollBarImageColor3 = Theme.Accent,
+        ScrollBarImageTransparency = 0.4,
+        ScrollingDirection = Enum.ScrollingDirection.Y,
+        BorderSizePixel = 0,
+        LayoutOrder = 5,
+        Parent = card,
+    })
+    Create("UIListLayout", {
+        Padding = UDim.new(0, 3),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Parent = scroll,
+    })
+    -- tinggi scroll mengikuti konten (maks maxH) — card ikut memanjang
+    reg:Connect(scroll:GetPropertyChangedSignal("AbsoluteContentSize"), function()
+        local lay = scroll:FindFirstChildOfClass("UIListLayout")
+        local h = lay and lay.AbsoluteContentSize.Y or 0
+        scroll.Size = UDim2.new(1, 0, 0, math.clamp(h, 0, maxH))
+    end)
+
+    local function updateCount()
+        local total = 0
+        for _, r in ipairs(itemRows) do
+            if not r.IsHeader then
+                total = total + 1
+            end
+        end
+        if multi then
+            countLabel.Text = #selected .. "/" .. total
+        else
+            countLabel.Text = (#selected > 0 and selected[1].Text or "...")
+        end
+    end
+
+    local function paintRow(r)
+        -- FIX v2.3.0: baris judul GRUP tidak punya Item — jangan dinilai
+        if r.IsHeader or r.Item == nil then
+            return
+        end
+        local sel = isSelected(r.Item)
+        if r.Dot then
+            r.Dot.BackgroundColor3 = sel and Theme.Accent or Theme.TextDim
+            r.Dot.BackgroundTransparency = sel and 0 or 0.6
+        end
+        if r.Label then
+            r.Label.TextColor3 = sel and Theme.Text or Theme.TextDim
+        end
+        if r.Btn then
+            if sel then
+                r.Btn.BackgroundColor3 = Theme.CardHover
+                r.Btn.BackgroundTransparency = 0.35
+            else
+                r.Btn.BackgroundColor3 = Theme.Card
+                r.Btn.BackgroundTransparency = 1
+            end
+        end
+    end
+
+    local function repaint()
+        for _, r in ipairs(itemRows) do
+            paintRow(r)
+        end
+    end
+
+    --  Filter tampilan (dipakai search box & :Filter) — group tanpa anak
+    --  yang cocok ikut disembunyikan.
+    local function applyFilter(query)
+        local needle = tostring(query or ""):lower()
+        local groupVisible = {}
+        for _, r in ipairs(itemRows) do
+            if r.IsHeader then
+                r.Btn.Visible = needle == ""
+                groupVisible[r.Btn] = false
+            else
+                local match = needle == ""
+                    or string.find(r.Item.Text:lower(), needle, 1, true) ~= nil
+                r.Btn.Visible = match
+                if match and r.GroupFrame then
+                    groupVisible[r.GroupFrame] = true
+                end
+            end
+        end
+        for btn, vis in pairs(groupVisible) do
+            if needle ~= "" then
+                btn.Visible = vis
+            end
+        end
+    end
+
+    local function onItemClick(r)
+        local it = r.Item
+        if multi then
+            -- keluarkan bila sudah terpilih, masukkan bila belum
+            for i, s in ipairs(selected) do
+                if itemMatchesSel(it, s) then
+                    table.remove(selected, i)
+                    repaint()
+                    updateCount()
+                    Zap(reg, r.Btn, Theme.Accent, 6)
+                    if cfg.OnItemClick then
+                        cfg.OnItemClick(it, r.Index, false)
+                    end
+                    notifyChange(element)
+                    return
+                end
+            end
+            table.insert(selected, it)
+        else
+            selected = { it }
+        end
+        repaint()
+        updateCount()
+        Zap(reg, r.Btn, Theme.Accent, 6)
+        if cfg.OnItemClick then
+            cfg.OnItemClick(it, r.Index, true)
+        end
+        notifyChange(element)
+    end
+
+    --  Bangun ulang seluruh daftar (dipakai saat create & :SetItems)
+    local function buildAll(items, groups)
+        for _, r in ipairs(itemRows) do
+            if r.Btn then
+                r.Btn:Destroy()
+            end
+        end
+        itemRows = {}
+        selected = {}
+        local order = 0
+        local index = 0
+
+        local function addHeader(text)
+            order = order + 1
+            local h = Create("TextLabel", {
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 0, 18),
+                Text = tostring(text or ""),
+                Font = Theme.FontBold,
+                TextSize = 11,
+                TextColor3 = Theme.AccentGold,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                TextTruncate = Enum.TextTruncate.AtEnd,
+                LayoutOrder = order,
+                Parent = scroll,
+            })
+            itemRows[#itemRows + 1] = { IsHeader = true, Btn = h }
+        end
+
+        local function addItem(it)
+            order = order + 1
+            index = index + 1
+            local btn = Create("TextButton", {
+                Text = "",
+                AutoButtonColor = false,
+                BackgroundColor3 = Theme.Card,
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 0, 28),
+                BorderSizePixel = 0,
+                LayoutOrder = order,
+                Parent = scroll,
+            })
+            Corner(btn, 6)
+            local xOff = 8
+            local dot = Create("Frame", {
+                AnchorPoint = Vector2.new(0, 0.5),
+                Position = UDim2.new(0, 8, 0.5, 0),
+                Size = UDim2.fromOffset(6, 6),
+                BackgroundColor3 = Theme.TextDim,
+                BackgroundTransparency = 0.6,
+                BorderSizePixel = 0,
+                Parent = btn,
+            })
+            Corner(dot, UDim.new(1, 0))
+            xOff = 20
+            -- gambar opsional milik pengguna (rbxassetid) — ThorUi sendiri
+            -- tetap 100% tanpa aset
+            if it.Image then
+                local img = Create("ImageLabel", {
+                    AnchorPoint = Vector2.new(0, 0.5),
+                    Position = UDim2.new(0, xOff, 0.5, 0),
+                    Size = UDim2.fromOffset(18, 18),
+                    BackgroundTransparency = 1,
+                    Image = it.Image,
+                    ImageColor3 = it.ImageColor or Theme.Text,
+                    Parent = btn,
+                })
+                Corner(img, 4)
+                xOff = xOff + 24
+            end
+            local label = Create("TextLabel", {
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, xOff, 0, 0),
+                Size = UDim2.new(1, -xOff - (it.TopRight and 64 or 0), 1, 0),
+                Text = it.Text,
+                Font = Theme.FontMain,
+                TextSize = 12,
+                TextColor3 = Theme.TextDim,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                TextTruncate = Enum.TextTruncate.AtEnd,
+                Parent = btn,
+            })
+            if it.TopRight then
+                Create("TextLabel", {
+                    BackgroundTransparency = 1,
+                    AnchorPoint = Vector2.new(1, 0),
+                    Position = UDim2.new(1, -8, 0, 0),
+                    Size = UDim2.new(0, 60, 1, 0),
+                    Text = it.TopRight,
+                    Font = Theme.FontBold,
+                    TextSize = 10,
+                    TextColor3 = Theme.AccentGold,
+                    TextXAlignment = Enum.TextXAlignment.Right,
+                    TextTruncate = Enum.TextTruncate.AtEnd,
+                    Parent = btn,
+                })
+            end
+            reg:Connect(btn.MouseEnter, function()
+                Tween(reg, btn, TI_HOVER, { BackgroundTransparency = 0.5, BackgroundColor3 = Theme.CardHover })
+            end)
+            reg:Connect(btn.MouseLeave, function()
+                paintRow({ Item = it, Btn = btn, Dot = dot, Label = label })
+            end)
+            reg:Connect(btn.Activated, function()
+                onItemClick({ Item = it, Btn = btn, Dot = dot, Label = label, Index = index })
+            end)
+            itemRows[#itemRows + 1] = { Item = it, Btn = btn, Dot = dot, Label = label, Index = index }
+        end
+
+        if type(groups) == "table" then
+            for _, g in ipairs(groups) do
+                if type(g) == "table" then
+                    addHeader(g.Title or g.Name or "")
+                    local groupBtn = itemRows[#itemRows].Btn
+                    for _, raw in ipairs(g.Items or {}) do
+                        addItem(normalizeItem(raw))
+                        itemRows[#itemRows].GroupFrame = groupBtn
+                    end
+                end
+            end
+        else
+            for _, raw in ipairs(items or {}) do
+                addItem(normalizeItem(raw))
+            end
+        end
+
+        -- terapkan pilihan awal (Selected)
+        if cfg.Selected ~= nil then
+            local function markSel(sel)
+                for _, r in ipairs(itemRows) do
+                    if not r.IsHeader and itemMatchesSel(r.Item, sel) then
+                        if multi then
+                            local already = false
+                            for _, s in ipairs(selected) do
+                                if itemMatchesSel(r.Item, s) then
+                                    already = true
+                                end
+                            end
+                            if not already then
+                                table.insert(selected, r.Item)
+                            end
+                        else
+                            selected = { r.Item }
+                        end
+                    end
+                end
+            end
+            if multi and type(cfg.Selected) == "table" then
+                for _, s in ipairs(cfg.Selected) do
+                    markSel(s)
+                end
+            else
+                markSel(cfg.Selected)
+            end
+        end
+
+        repaint()
+        updateCount()
+        if searchBox then
+            applyFilter(searchBox.Text)
+        end
+    end
+
+    buildAll(cfg.Items, cfg.Groups)
+
+    if searchBox then
+        reg:Connect(searchBox:GetPropertyChangedSignal("Text"), function()
+            applyFilter(searchBox.Text)
+        end)
+    end
+
+    element = {
+        Type = "List",
+        Name = cfg.Name,
+        Instance = card,
+        Registry = reg,
+        SetDescription = function(_, t)
+            setDesc(t)
+        end,
+        Get = function(_)
+            if multi then
+                local copy = {}
+                for i, s in ipairs(selected) do
+                    copy[i] = s
+                end
+                return copy
+            end
+            return selected[1]
+        end,
+        Set = function(_, sel, silent)
+            selected = {}
+            local function mark(selOne)
+                for _, r in ipairs(itemRows) do
+                    if not r.IsHeader and itemMatchesSel(r.Item, selOne) then
+                        if multi then
+                            selected[#selected + 1] = r.Item
+                        else
+                            selected = { r.Item }
+                        end
+                    end
+                end
+            end
+            if multi and type(sel) == "table" then
+                for _, s in ipairs(sel) do
+                    mark(s)
+                end
+            elseif sel ~= nil then
+                mark(sel)
+            end
+            repaint()
+            updateCount()
+            if silent ~= true and cfg.OnItemClick then
+                cfg.OnItemClick(element.Get and element:Get(), nil, true)
+            end
+            notifyChange(element)
+        end,
+        SetItems = function(_, items, groups)
+            buildAll(items, groups)
+            notifyChange(element)
+        end,
+        Clear = function(_)
+            selected = {}
+            repaint()
+            updateCount()
+        end,
+        Filter = function(_, query)
+            if searchBox then
+                searchBox.Text = tostring(query or "")
+            else
+                applyFilter(query)
+            end
+        end,
+    }
+    self:_track(element)
+    EnableChildren(self, element, cfg, titleRow, titleLabel, "row")
+    return element
+end
+
+--// ─────────────── Elemen: MODELVIEW (v2.3.0 — etalase 3D) ──────────────────
+--  ViewportFrame untuk memajangkan Model/Part 3D langsung di dalam UI.
+--  Kamera otomatis membingkai objek + opsi putar (Spin). Tanpa model yang
+--  diberikan, etalase menampilkan palu petir geometris BAWAAN (murni Part —
+--  tetap nol aset gambar).
+--      Tab:AddModelView({ Name = "Palu", Model = someModel, Spin = true })
+function TabClass:AddModelView(cfg)
+    cfg = cfg or {}
+    local reg = Registry.new()
+    local card = self:_card()
+
+    local height = math.clamp(tonumber(cfg.Height) or 150, 90, 400)
+    local spinEnabled = cfg.Spin ~= false
+
+    local titleRow = Create("Frame", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 18),
+        LayoutOrder = 1,
+        Parent = card,
+    })
+    local titleLabel = Create("TextLabel", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, -90, 1, 0),
+        Text = cfg.Name or "Model",
+        Font = Theme.FontMedium,
+        TextSize = 13,
+        TextColor3 = Theme.Text,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextTruncate = Enum.TextTruncate.AtEnd,
+        Parent = titleRow,
+    })
+    local spinBtn = Create("TextButton", {
+        Text = "",
+        AutoButtonColor = false,
+        BackgroundTransparency = 1,
+        AnchorPoint = Vector2.new(1, 0.5),
+        Position = UDim2.new(1, 0, 0.5, 0),
+        Size = UDim2.fromOffset(64, 16),
+        Font = Theme.FontBold,
+        TextSize = 10,
+        TextColor3 = Theme.TextDim,
+        Text = spinEnabled and "SPIN ON" or "SPIN OFF",
+        Parent = titleRow,
+    })
+
+    local setDesc = attachDescription(card, 2)
+    setDesc(cfg.Description)
+
+    local vp = Create("ViewportFrame", {
+        Size = UDim2.new(1, 0, 0, height),
+        BackgroundColor3 = Theme.BackgroundAlt,
+        BorderSizePixel = 0,
+        LayoutOrder = 3,
+        Ambient = Color3.fromRGB(70, 78, 100),
+        LightColor = Color3.fromRGB(255, 240, 200),
+        LightDirection = Vector3.new(-0.6, -1, -0.8),
+        Parent = card,
+    })
+    Corner(vp, 8)
+    Stroke(vp, { Color = Theme.StrokeDim, Transparency = 0.35 })
+    local camera = Instance.new("Camera")
+    camera.FieldOfView = 45
+    camera.Parent = vp
+    vp.CurrentCamera = camera
+
+    --  Bersihkan klon dari efek/scripts/suara; jangkar semua part.
+    local function cleanClone(inst)
+        local ok, copy = pcall(function()
+            return inst:Clone()
+        end)
+        if not ok or not copy then
+            return nil
+        end
+        for _, d in ipairs(copy:GetDescendants()) do
+            if d:IsA("LuaSourceContainer")
+                or d:IsA("ParticleEmitter")
+                or d:IsA("Trail")
+                or d:IsA("Beam")
+                or d:IsA("Light")
+                or d:IsA("Sound")
+                or d:IsA("Fire")
+                or d:IsA("Smoke")
+                or d:IsA("Sparkles") then
+                d:Destroy()
+            elseif d:IsA("BasePart") then
+                d.Anchored = true
+                d.CanCollide = false
+                d.CastShadow = false
+            end
+        end
+        if copy:IsA("BasePart") then
+            copy.Anchored = true
+            copy.CanCollide = false
+            copy.CastShadow = false
+        end
+        return copy
+    end
+
+    --  Bingkai kamera agar objek selalu pas di tengah viewport.
+    local function frameCamera(shown)
+        local size
+        local center
+        if shown:IsA("Model") then
+            local cf, sz = nil, nil
+            local ok = pcall(function()
+                cf, sz = shown:GetBoundingBox()
+            end)
+            if ok and cf then
+                center, size = cf.Position, sz
+            end
+        end
+        if not center then
+            -- Part tunggal / fallback: pakai ukuran & posisi langsung
+            size = shown:IsA("BasePart") and shown.Size or Vector3.new(4, 4, 4)
+            center = shown:IsA("BasePart") and shown.Position or Vector3.zero
+        end
+        local dist = math.max(size.X, size.Y, size.Z) * 2.1 + 2
+        camera.CFrame = CFrame.lookAt(
+            center + Vector3.new(0, size.Y * 0.3, dist),
+            center
+        )
+    end
+
+    local currentModel = nil
+
+    local function setModel(inst)
+        for _, child in ipairs(vp:GetChildren()) do
+            if child ~= camera then
+                child:Destroy()
+            end
+        end
+        if typeof(inst) ~= "Instance" then
+            currentModel = nil
+            return
+        end
+        local shown = inst
+        if not inst:IsDescendantOf(vp) then
+            shown = cleanClone(inst) or inst
+        end
+        shown.Parent = vp
+        currentModel = shown
+        frameCamera(shown)
+    end
+
+    -- ── palu petir geometris bawaan (nol aset — murni Part box) ──
+    local function buildDefaultMjolnir()
+        local m = Instance.new("Model")
+        m.Name = "Mjolnir"
+        local function part(size, color, material, pos)
+            local p = Instance.new("Part")
+            p.Size = size
+            p.Color = color
+            p.Material = material
+            p.Anchored = true
+            p.CanCollide = false
+            p.CastShadow = false
+            p.CFrame = CFrame.new(pos)
+            p.Parent = m
+            return p
+        end
+        local steel = Color3.fromRGB(186, 194, 208)
+        local gold = Color3.fromRGB(255, 190, 0)
+        local wood = Color3.fromRGB(122, 86, 51)
+        -- kepala palu
+        part(Vector3.new(0.9, 1.5, 1.5), steel, Enum.Material.Metal, Vector3.new(0, 2.55, 0))
+        part(Vector3.new(0.5, 1.62, 1.62), steel, Enum.Material.Metal, Vector3.new(0, 2.55, 0))
+        -- plat emas pengikat atas & bawah kepala
+        part(Vector3.new(0.96, 0.18, 1.56), gold, Enum.Material.Metal, Vector3.new(0, 3.22, 0))
+        part(Vector3.new(0.96, 0.18, 1.56), gold, Enum.Material.Metal, Vector3.new(0, 1.88, 0))
+        -- gagang kayu + balutan emas
+        part(Vector3.new(0.42, 1.9, 0.42), wood, Enum.Material.Wood, Vector3.new(0, 1.0, 0))
+        part(Vector3.new(0.5, 0.14, 0.5), gold, Enum.Material.Metal, Vector3.new(0, 1.85, 0))
+        part(Vector3.new(0.5, 0.14, 0.5), gold, Enum.Material.Metal, Vector3.new(0, 0.28, 0))
+        -- pommel emas
+        part(Vector3.new(0.56, 0.3, 0.56), gold, Enum.Material.Metal, Vector3.new(0, 0.06, 0))
+        return m
+    end
+
+    setModel(cfg.Model or buildDefaultMjolnir())
+
+    -- rotasi halus (bisa dimatikan)
+    local spinConn
+    local function startSpin()
+        if spinConn then
+            return
+        end
+        spinConn = reg:Connect(RunService.Heartbeat, function(dt)
+            if currentModel then
+                currentModel:PivotTo(
+                    currentModel:GetPivot() * CFrame.Angles(0, math.rad(42 * dt), 0)
+                )
+            end
+        end)
+    end
+    local function stopSpin()
+        if spinConn then
+            spinConn:Disconnect()
+            reg:Disconnect(spinConn)
+            spinConn = nil
+        end
+    end
+
+    reg:Connect(spinBtn.Activated, function()
+        spinEnabled = not spinEnabled
+        spinBtn.Text = spinEnabled and "SPIN ON" or "SPIN OFF"
+        spinBtn.TextColor3 = spinEnabled and Theme.Accent or Theme.TextDim
+        if spinEnabled then
+            startSpin()
+        else
+            stopSpin()
+        end
+        Zap(reg, spinBtn, Theme.AccentGold, 4)
+    end)
+    if spinEnabled then
+        spinBtn.TextColor3 = Theme.Accent
+        startSpin()
+    end
+
+    local element = {
+        Type = "ModelView",
+        Name = cfg.Name,
+        Instance = card,
+        Registry = reg,
+        SetDescription = function(_, t)
+            setDesc(t)
+        end,
+        Get = function(_)
+            return currentModel
+        end,
+        Set = function(_, inst)
+            setModel(inst)
+        end,
+        SetModel = function(_, inst)
+            setModel(inst)
+        end,
+        SetSpin = function(_, on)
+            spinEnabled = on == true
+            spinBtn.Text = spinEnabled and "SPIN ON" or "SPIN OFF"
+            spinBtn.TextColor3 = spinEnabled and Theme.Accent or Theme.TextDim
+            if spinEnabled then
+                startSpin()
+            else
+                stopSpin()
+            end
+        end,
+    }
+    self:_track(element)
+    EnableChildren(self, element, cfg, titleRow, titleLabel, "row")
+    return element
+end
+
+--// ─────────────── Elemen: CANVAS (v2.3.0 — dashboard deklaratif) ───────────
+--  Widget mini-dashboard yang dideklarasikan lewat tabel — baris teks
+--  (label + nilai), bar progress, tombol, dan pemisah — semuanya bisa
+--  diperbarui saat runtime lewat :Set(nama, props).
+--      local dash = Tab:AddCanvas({ Name = "Statistik", Widgets = {
+--          { Type = "Text", Name = "kills", Text = "Kills", Value = "0" },
+--          { Type = "Bar",  Name = "hp",    Text = "Health", Value = 1 },
+--          { Type = "Button", Name = "rejoin", Text = "Rejoin", Callback = fn },
+--      } })
+--      dash:Set("kills", { Value = "128" })
+function TabClass:AddCanvas(cfg)
+    cfg = cfg or {}
+    local reg = Registry.new()
+    local card = self:_card()
+
+    local titleRow = Create("Frame", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 18),
+        LayoutOrder = 1,
+        Parent = card,
+    })
+    local titleLabel = Create("TextLabel", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        Text = cfg.Name or "Canvas",
+        Font = Theme.FontMedium,
+        TextSize = 13,
+        TextColor3 = Theme.Text,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextTruncate = Enum.TextTruncate.AtEnd,
+        Parent = titleRow,
+    })
+
+    local setDesc = attachDescription(card, 2)
+    setDesc(cfg.Description)
+
+    local body = Create("Frame", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        LayoutOrder = 3,
+        Parent = card,
+    })
+    Create("UIListLayout", {
+        Padding = UDim.new(0, 5),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Parent = body,
+    })
+
+    local handles = {}
+    local order = 0
+
+    local function buildWidget(w)
+        order = order + 1
+        local wtype = string.lower(tostring(w.Type or "text"))
+        local name = tostring(w.Name or wtype .. order)
+
+        if wtype == "text" then
+            local row = Create("Frame", {
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 0, 18),
+                LayoutOrder = order,
+                Parent = body,
+            })
+            local lbl = Create("TextLabel", {
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, -90, 1, 0),
+                Text = tostring(w.Text or name),
+                Font = Theme.FontMain,
+                TextSize = 12,
+                TextColor3 = Theme.TextDim,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                TextTruncate = Enum.TextTruncate.AtEnd,
+                Parent = row,
+            })
+            local val = Create("TextLabel", {
+                BackgroundTransparency = 1,
+                AnchorPoint = Vector2.new(1, 0),
+                Position = UDim2.new(1, 0, 0, 0),
+                Size = UDim2.new(0, 90, 1, 0),
+                Text = tostring(w.Value or ""),
+                Font = Theme.FontBold,
+                TextSize = 12,
+                TextColor3 = Theme.AccentGold,
+                TextXAlignment = Enum.TextXAlignment.Right,
+                TextTruncate = Enum.TextTruncate.AtEnd,
+                Parent = row,
+            })
+            handles[name] = {
+                Type = "Text",
+                Set = function(props)
+                    if props.Text ~= nil then
+                        lbl.Text = tostring(props.Text)
+                    end
+                    if props.Value ~= nil then
+                        val.Text = tostring(props.Value)
+                    end
+                end,
+                Get = function()
+                    return { Text = lbl.Text, Value = val.Text }
+                end,
+            }
+
+        elseif wtype == "bar" then
+            local row = Create("Frame", {
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 0, 24),
+                LayoutOrder = order,
+                Parent = body,
+            })
+            local lbl = Create("TextLabel", {
+                BackgroundTransparency = 1,
+                Size = UDim2.new(0.38, -6, 1, 0),
+                Text = tostring(w.Text or name),
+                Font = Theme.FontMain,
+                TextSize = 12,
+                TextColor3 = Theme.TextDim,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                TextTruncate = Enum.TextTruncate.AtEnd,
+                Parent = row,
+            })
+            local barTrack = Create("Frame", {
+                AnchorPoint = Vector2.new(1, 0.5),
+                Position = UDim2.new(1, 0, 0.5, 0),
+                Size = UDim2.new(0.62, 0, 6, 0),
+                BackgroundColor3 = Theme.Track,
+                BorderSizePixel = 0,
+                Parent = row,
+            })
+            Corner(barTrack, UDim.new(1, 0))
+            local barFill = Create("Frame", {
+                Size = UDim2.new(0, 0, 1, 0),
+                BackgroundColor3 = Theme.White, -- PUTIH → gradien murni
+                BorderSizePixel = 0,
+                Parent = barTrack,
+            })
+            Corner(barFill, UDim.new(1, 0))
+            Gradient(barFill, Color3.fromRGB(0, 170, 235), Color3.fromRGB(90, 220, 255), 90)
+            local function setBar(v)
+                local rel = math.clamp(tonumber(v) or 0, 0, 1)
+                barFill.Size = UDim2.new(rel, 0, 1, 0)
+            end
+            setBar(w.Value)
+            handles[name] = {
+                Type = "Bar",
+                Set = function(props)
+                    if props.Text ~= nil then
+                        lbl.Text = tostring(props.Text)
+                    end
+                    if props.Value ~= nil then
+                        setBar(props.Value)
+                    end
+                    if typeof(props.Color) == "Color3" then
+                        barFill.BackgroundColor3 = props.Color
+                    end
+                end,
+                Get = function()
+                    return { Text = lbl.Text, Value = barFill.Size.X.Scale }
+                end,
+            }
+
+        elseif wtype == "button" then
+            local btn = Create("TextButton", {
+                Text = "",
+                AutoButtonColor = false,
+                BackgroundColor3 = Theme.Card,
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 0, 28),
+                BorderSizePixel = 0,
+                LayoutOrder = order,
+                Parent = body,
+            })
+            Corner(btn, 6)
+            local bStroke = Stroke(btn, { Color = Theme.Accent, Transparency = 0.4 })
+            local bLabel = Create("TextLabel", {
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 1, 0),
+                Text = tostring(w.Text or name),
+                Font = Theme.FontBold,
+                TextSize = 12,
+                TextColor3 = Theme.Accent,
+                Parent = btn,
+            })
+            reg:Connect(btn.MouseEnter, function()
+                Tween(reg, btn, TI_HOVER, { BackgroundTransparency = 0.5, BackgroundColor3 = Theme.CardHover })
+                Tween(reg, bStroke, TI_HOVER, { Transparency = 0 })
+            end)
+            reg:Connect(btn.MouseLeave, function()
+                Tween(reg, btn, TI_HOVER, { BackgroundTransparency = 1, BackgroundColor3 = Theme.Card })
+                Tween(reg, bStroke, TI_HOVER, { Transparency = 0.4 })
+            end)
+            reg:Connect(btn.Activated, function()
+                Zap(reg, btn, Theme.AccentGold, 6)
+                if type(w.Callback) == "function" then
+                    w.Callback()
+                end
+            end)
+            handles[name] = {
+                Type = "Button",
+                Set = function(props)
+                    if props.Text ~= nil then
+                        bLabel.Text = tostring(props.Text)
+                    end
+                end,
+                Get = function()
+                    return { Text = bLabel.Text }
+                end,
+                Fire = function()
+                    if type(w.Callback) == "function" then
+                        w.Callback()
+                    end
+                end,
+            }
+
+        elseif wtype == "divider" then
+            local line = Create("Frame", {
+                BackgroundColor3 = Theme.White,
+                BorderSizePixel = 0,
+                Size = UDim2.new(1, 0, 0, 1),
+                LayoutOrder = order,
+                Parent = body,
+            })
+            Gradient(line, Theme.AccentGold, Theme.Accent, 0, NumberSequence.new({
+                NumberSequenceKeypoint.new(0, 0),
+                NumberSequenceKeypoint.new(1, 0.85),
+            }))
+            handles[name] = {
+                Type = "Divider",
+                Set = function() end,
+                Get = function()
+                    return {}
+                end,
+            }
+        end
+    end
+
+    for _, w in ipairs(cfg.Widgets or {}) do
+        buildWidget(w)
+    end
+
+    local element = {
+        Type = "Canvas",
+        Name = cfg.Name,
+        Instance = card,
+        Registry = reg,
+        SetDescription = function(_, t)
+            setDesc(t)
+        end,
+        Get = function(_, name)
+            local h = handles[tostring(name or "")]
+            return h and h.Get and h.Get() or nil
+        end,
+        Set = function(_, name, props)
+            local h = handles[tostring(name or "")]
+            if h and h.Set then
+                h.Set(props or {})
+            end
+        end,
+        AddWidget = function(_, w)
+            buildWidget(w)
+        end,
+        Fire = function(_, name)
+            local h = handles[tostring(name or "")]
+            if h and h.Fire then
+                h.Fire()
+            end
+        end,
+    }
+    self:_track(element)
+    EnableChildren(self, element, cfg, titleRow, titleLabel, "row")
+    return element
 end
 
 --// ──────────────────────────────── Window ──────────────────────────────────
@@ -4089,6 +6674,7 @@ function ThorUi:Destroy()
     _state.Gui = nil
     _state.NotifyHolder = nil
     _state.ToggleButton = nil
+    _state.QuickDock = nil -- v2.3.0: deret quick action ikut hancur bersama Gui
     _state.Windows = {}
     _state.Notifs = {}
 end
@@ -4113,8 +6699,8 @@ return ThorUi
         local ThorUi = require(ReplicatedStorage:WaitForChild("ThorUi"))
 
         -- (Opsional) kustomisasi tema SEBELUM membuat window:
-        -- ThorUi.Theme.Accent     = Color3.fromRGB(170, 90, 255)
-        -- ThorUi.Theme.AccentGold = Color3.fromRGB(255, 200, 60)
+        -- ThorUi:SetTheme({ Accent = Color3.fromRGB(170, 90, 255),
+        --                    AccentGold = Color3.fromRGB(255, 200, 60) })
 
         local Window = ThorUi:CreateWindow({
                 Title   = "ThorUi ⚡",
@@ -4165,6 +6751,76 @@ return ThorUi
                 Default = false,
                 Callback = function(value)
                         print("God Mode:", value)
+                end,
+        })
+
+        -- v2.3.0: SUB-ROW — toggle ini punya ANAK (buka panah kecil di kiri)
+        local speedToggle = Tab:AddToggle({
+                Name = "Speed Hack",
+                Default = false,
+                Callback = function(v) print("Speed Hack:", v) end,
+        })
+        speedToggle:AddChild("Slider", {
+                Name = "Nilai Speed",
+                Min = 16, Max = 500, Default = 16, Suffix = " spd",
+                Callback = function(v) print("Speed:", v) end,
+        })
+        speedToggle:AddChild("Toggle", {
+                Name = "Saat Lompat Juga",
+                Default = true,
+                Callback = function(v) print("Jump boost:", v) end,
+        })
+
+        -- v2.3.0: DEPENDS — slider ini HANYA tampil saat God Mode ON
+        local regenSlider = Tab:AddSlider({
+                Name = "Regen / detik",
+                Min = 0, Max = 100, Default = 10,
+                Depends = { Element = godMode, Value = true },
+                Callback = function(v) print("Regen:", v) end,
+        })
+
+        -- v2.3.0: STATE + BINDING — 2 slider berbagi SATU nilai (0..100):
+        -- geser salah satu, yang lain ikut
+        local st = ThorUi:CreateState({
+                Name = "PowerLevel", Default = 50,
+                Callback = function(v) print("Power:", v) end,
+        })
+        local s1 = Tab:AddSlider({ Name = "Power (A)", Min = 0, Max = 100, Default = 50 })
+        local s2 = Tab:AddSlider({ Name = "Power (B)", Min = 0, Max = 100, Default = 50 })
+        st:Bind(s1)
+        st:Bind(s2)
+
+        -- v2.3.0: SLIDER UNITS — konversi m ↔ km otomatis (nilai internal
+        -- selalu meter); klik ANGKA untuk mengetik nilai eksak
+        Tab:AddSlider({
+                Name = "Jarak Serangan",
+                Min = 0, Max = 10000, Default = 1000,
+                Units = {
+                        Default = "m",
+                        Options = {
+                                { Name = "m",  Suffix = "m" },
+                                { Name = "km", Suffix = "km", Decimals = 2,
+                                  FromBase = function(m) return m / 1000 end,
+                                  ToBase   = function(km) return km * 1000 end },
+                        },
+                },
+                Callback = function(m) print("Jarak (meter):", m) end,
+        })
+
+        -- v2.3.0: BUTTON dua tahap (ConfirmText)
+        Tab:AddButton({
+                Name = "Reset Progress",
+                ConfirmText = "Yakin? Klik lagi!",
+                Callback = function() print("Progress direset!") end,
+        })
+
+        -- v2.3.0: DROPDOWN + Search + ApplyButton
+        Tab:AddDropdown({
+                Name = "Target Farm",
+                Values = { "Mob Perum", "Mob Kuil", "Boss Petir", "Boss Es", "Mini Boss" },
+                Multi = true, Search = true, ApplyButton = "Terapkan",
+                Callback = function(values, indices)
+                        print("Farm:", table.concat(values, ", "))
                 end,
         })
 
@@ -4226,13 +6882,61 @@ return ThorUi
         })
         Tab:AddLabel({ Text = "Menu ini dibuat TERLIPAT — klik judulnya untuk membuka." })
 
+        -- ── v2.3.0: WIDGET BARU ──
+
+        -- LIST: browser item — cari, pilah per grup, klik untuk pilih
+        Tab:AddList({
+                Name = "Gudang Senjata",
+                Search = true,
+                Groups = {
+                        { Title = "Palu", Items = {
+                                { Text = "Mjolnir", TopRight = "Legendary" },
+                                { Text = "Stormbreaker", TopRight = "Mythic" },
+                        } },
+                        { Title = "Tombak", Items = { "Gungnir", "Trisula" } },
+                },
+                OnItemClick = function(item, index, selected)
+                        print("Pilih:", item.Text, "→", selected)
+                end,
+        })
+
+        -- MODELVIEW: etalase 3D (tanpa model → palu petir bawaan, murni Part)
+        local palu = Tab:AddModelView({ Name = "Etalase", Height = 150, Spin = true })
+        -- palu:SetModel(workspace.SomeModel)  → ganti objek kapan pun
+
+        -- CANVAS: dashboard mini + update runtime
+        local dash = Tab:AddCanvas({
+                Name = "Statistik",
+                Widgets = {
+                        { Type = "Text", Name = "kills", Text = "Kills", Value = "0" },
+                        { Type = "Bar",  Name = "hp",    Text = "Health", Value = 1 },
+                        { Type = "Button", Name = "rejoin", Text = "Rejoin",
+                          Callback = function() print("rejoin!") end },
+                },
+        })
+        -- dash:Set("kills", { Value = "128" })  → update dari script
+
+        -- GROUP (radio): maksimal satu mode aktif
+        local modeGroup = ThorUi:CreateGroup({ Name = "Mode Aim" })
+        Tab:AddToggle({ Name = "Aim: Kepala", Group = modeGroup, Default = true })
+        Tab:AddToggle({ Name = "Aim: Dada",   Group = modeGroup })
+        Tab:AddToggle({ Name = "Aim: Kaki",   Group = modeGroup })
+
+        -- QUICK ACTION: tombol melayang yang bisa digeser
+        ThorUi:AddQuickAction({
+                Icon = "⚡", Name = "Sambar Sekarang",
+                Callback = function() print("ZAP!") end,
+        })
+
         Tab2:AddParagraph({
-                Title = "Tentang ThorUi v2",
-                Text = "Layout modern dengan tema Dewa Petir: sidebar tab "
-                        .. "ber-ikon, search bar untuk filter elemen, splash screen, "
-                        .. "ColorPicker, Confirm dialog, dan judul section (menu) yang "
-                        .. "bisa DIKLIK untuk minimize. Drag window dari logo/sidebar "
-                        .. "atau header, resize dari sudut kanan bawah.",
+                Title = "Tentang ThorUi v2.3",
+                Text = "UI library Dewa Petir: sidebar tab ber-ikon, search bar, "
+                        .. "splash screen, ColorPicker, Confirm dialog, section yang "
+                        .. "bisa di-minimize, PLUS v2.3: State binding antar-elemen, "
+                        .. "Depends (baris otomatis muncul/sembunyi), sub-row AddChild, "
+                        .. "slider multi-satuan, List browser item, etalase 3D "
+                        .. "ModelView, dashboard Canvas, grup radio, dan quick "
+                        .. "action melayang.",
         })
 
         ThorUi:Notify({ Title = "⚡ Petir Menyambar", Content = "Script berhasil dimuat!", Duration = 3 })
@@ -4244,6 +6948,8 @@ return ThorUi
         -- godMode:SetDescription("teks keterangan baru")
         -- menuLanjutan:Toggle()  → minimize/buka menu dari script
         -- menuLanjutan:SetCollapsed(false) → buka paksa
+        -- speedToggle:SetExpanded(true)  → buka anak2 sub-row dari script
+        -- regenSlider:SetDependency({ Element = godMode, Value = true })
         -- Window:Toggle() / Window:Destroy()
         -- Window:SetTitle("Judul Baru")
         -- ThorUi:Destroy()          → hancurkan seluruh UI + bersihkan memory

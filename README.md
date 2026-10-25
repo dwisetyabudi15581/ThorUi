@@ -1,12 +1,12 @@
 # ⚡ ThorUi v2 — Roblox UI Library bertema Dewa Petir
 
 > UI library untuk Roblox dengan tema **Thor / Dewa Petir**: gelap, snappy, dan elektrik.
-> **v2.2.3: UKURAN DEFAULT RADA PERSEGU (440×390) + FIX "window langsung terpotong padahal belum sampai pinggir layar" — ukuran default kini dihitung murni dari dimensi layar aktual (dijamin muat di semua perangkat, tak lagi bergantung deteksi mouse yang keliru melaporkan MouseEnabled di sebagian Android/emulator) + ambang sidebar icon-only turun 520→430px** + v2.2.2: PANAH ASLI (DIGAMBAR — fix "kotak" tofu di judul section) + SEMUA SECTION MULAI TERLIPAT saat pertama execute + DRAG WINDOW BEBAS TANPA BATAS LAYAR + v2.2.1: MENU (SECTION) BISA DI-MINIMIZE — klik judulnya untuk melipat semua fitur di dalamnya (`Section:Toggle()` / `:SetCollapsed()` / `:IsCollapsed()`)** + v2.2.0: OPTIMASI PERFORMA — UI dibikin seringan mungkin: pengukur teks ber-cache (`GetTextSize` hanya saat teks/lebar benar-benar berubah), re-ukur digabung maksimal 1 pass per frame, tween otomatis keluar dari registry saat selesai (dulu menumpuk ribuan entri mati), hover card hanya di perangkat bermouse, search debounce 0.1 detik + rebranding total (desain 100% original ThorUi)** + v2.1.5 hapus "kotak abu-abu" di belakang nilai slider/dropdown + v2.1.4 fix gradien kotor (UIGradient = TINT) + v2.1.3 fix error fatal `'Value' is not a valid member of UDim'` — sidebar tab, search bar, splash screen, ColorPicker, Confirm dialog.
+> **v2.3.0 — RILIS FITUR BESAR: STATE BINDING antar-elemen (ubah satu slider, elemen lain ikut — dua arah) + DEPENDS (baris otomatis muncul/sembunyi mengikuti nilai elemen lain) + SUB-ROW `Element:AddChild()` (elemen bertingkat di dalam kartu induk) + SLIDER MULTI-SATUAN dengan konversi otomatis (m ↔ km) & ketik nilai eksak + BUTTON klik dua tahap (ConfirmText) + DROPDOWN pencarian & mode Apply & kelola opsi runtime + LIST browser item (cari/grup/pilih/badge) + MODELVIEW etalase 3D dengan putaran otomatis + CANVAS dashboard mini + GROUP radio toggles + QUICK ACTION tombol melayang + `ThorUi:SetTheme()`** — semua tetap 100% murni script tanpa Asset ID. v2.2.3: ukuran default rada persegu dihitung dari dimensi layar aktual (dijamin muat di semua perangkat) + v2.2.2: panah digambar (fix kotak tofu), semua section mulai terlipat, drag window bebas tanpa batas + v2.2.1: menu (section) bisa di-minimize + v2.2.0: optimasi performa menyeluruh.
 > Dukungan penuh **PC & Mobile** · Window *draggable* & *resizable* · **100% murni script** (tanpa Asset ID eksternal) · **Anti memory-leak**
 
 | | |
 |---|---|
-| **Versi** | 2.2.3 |
+| **Versi** | 2.3.0 |
 | **Tipe** | ModuleScript tunggal (Luau), tanpa dependensi |
 | **Platform** | PC (Mouse + Keyboard) & Mobile (Touch) |
 | **Aset** | `Instance.new` / `UICorner` / `UIStroke` / `UIGradient` saja — anti asset takedown |
@@ -51,6 +51,23 @@
 - **FIX ColorPicker slider hue via sentuhan** — dulu slider hue hanya bisa digeser mouse; kini jari juga bisa (filter gesture source-lock).
 - **Gesture source-lock menyeluruh** — drag window, resize, slider, dan ikon ⚡ mengunci sumber input saat gesture dimulai: di perangkat *hybrid* (PC layar sentuh / tablet + mouse) posisi mouse yang menetap tidak lagi bikin UI meloncat; jari kedua tidak mengganggu drag yang sedang berjalan.
 - **Sentuhan mobile makin nyaman** — nilai slider tidak terpotong (`TextTruncate`), baris opsi dropdown 24→28px, kartu Confirm dialog auto-fit di layar sempit.
+
+### Baru di v2.3.0 (rilis fitur besar — semua tetap tema Thor, nol aset)
+
+| Fitur | Ringkasan |
+|---|---|
+| **State + Binding** | `ThorUi:CreateState()` — satu nilai bersama untuk banyak elemen; ubah salah satu, semuanya ikut (dua arah, bebas echo/loop). Mendukung transformasi nilai per-elemen (`ToState`/`ToOption`). |
+| **Depends** | Baris elemen muncul/sembunyi OTOMATIS mengikuti nilai elemen/state lain: `Depends = { Element = toggleX, Value = true }` — bisa dirantai & diganti runtime (`:SetDependency` / `:ClearDependency`). |
+| **Sub-row `AddChild`** | Elemen bertingkat! `toggle:AddChild("Slider", {...})` — anak tampil terinden di dalam kartu induk dengan garis pemandu petir + chevron lipat; semua tipe elemen didukung. |
+| **Slider multi-satuan** | `Units` dengan konversi otomatis (`FromBase`/`ToBase`, mis. m ↔ km), chip pemilih satuan, angka emas + satuan redup (RichText), **klik angka untuk mengetik nilai eksak**, setter runtime (`:SetRange` `:SetDecimals` `:SetIncrement` `:SetSuffix` `:SetUnit`). |
+| **Button 2 tahap** | `ConfirmText` — klik pertama menegangkan (teks berubah jadi konfirmasi), klik kedua eksekusi; batal otomatis 2.5 detik. |
+| **Dropdown ++** | `Search` (filter opsi), `ApplyButton` (mode aksi: pilih dulu lalu Apply → `callback(nilai, indeks)`), kelola opsi runtime (`:SetValues` `:AddValue` `:RemoveValue` `:Filter`). |
+| **List (baru)** | Browser item: pencarian, grup, multi-pilih, badge kanan (`TopRight`), gambar opsional milik user, `OnItemClick`. |
+| **ModelView (baru)** | Etalase 3D `ViewportFrame` — kamera auto-frame, putaran otomatis (Spin), objek dibersihkan dari efek/scripts. Tanpa model → **palu petir geometris bawaan** (murni Part — tetap nol aset!). |
+| **Canvas (baru)** | Dashboard mini deklaratif: `Text` / `Bar` / `Button` / `Divider` + update runtime `dash:Set(nama, props)`. |
+| **Group (radio)** | `ThorUi:CreateGroup()` + `AddToggle({..., Group = g})` — maksimal satu toggle aktif dalam grup. |
+| **Quick Action** | `ThorUi:AddQuickAction({Icon, Name, Callback})` — deret tombol bundar melayang yang bisa digeser; pintasan selalu terlihat walau window tertutup. |
+| **`SetTheme()`** | Pengganti edit `ThorUi.Theme` manual — merge patch tema (tetap dipanggil **sebelum** `CreateWindow`). |
 
 ### Baru di v2.2.3 (dari permintaan: "ukuran default bikin rada persegi, jangan terlalu wide; drag bebas belum work — window langsung kepotong padahal belum sampai pinggir layar")
 
@@ -250,10 +267,19 @@ Tab:AddSlider({
 })
 ```
 
-#### `Tab:AddButton({ Name, Callback })`
+#### `Tab:AddButton({ Name, ConfirmText, Callback })`
+
+**v2.3.0 — `ConfirmText` (opsional)**: klik dua tahap untuk aksi berisiko — klik pertama mengubah teks tombol menjadi konfirmasi (batal otomatis setelah 2.5 detik), klik kedua mengeksekusi.
 
 ```lua
 Tab:AddButton({ Name = "Klik Aku", Callback = function() print("klik!") end })
+
+-- aksi berisiko: wajib klik 2x (Reset Progress → "Yakin? Klik lagi!" → eksekusi)
+Tab:AddButton({
+    Name = "Reset Progress",
+    ConfirmText = "Yakin? Klik lagi!",
+    Callback = function() print("direset!") end,
+})
 ```
 
 #### `Tab:AddToggle({ Name, Default, Callback })`
@@ -270,6 +296,16 @@ godMode:Set(true, false) -- set nilai TANPA callback
 godMode:Get()            -- ambil nilai (bool)
 ```
 
+**v2.3.0 — `Group` (opsional)**: perilaku radio — sekumpulan toggle dalam grup yang sama, maksimal satu aktif:
+
+```lua
+local mode = ThorUi:CreateGroup({ Name = "Mode Aim" }) -- KeepNone = true (default): semua boleh mati
+Tab:AddToggle({ Name = "Aim: Kepala", Group = mode, Default = true })
+Tab:AddToggle({ Name = "Aim: Dada",   Group = mode })
+Tab:AddToggle({ Name = "Aim: Kaki",   Group = mode })
+-- mode:Get() → toggle yang sedang aktif · mode:Set(el) · mode:Clear()
+```
+
 #### `Tab:AddSlider({ Name, Min, Max, Default, Increment, Precision, Suffix, Callback })`
 
 | Key | Tipe | Deskripsi |
@@ -279,6 +315,9 @@ godMode:Get()            -- ambil nilai (bool)
 | `Increment` | `number` | Kelipatan langkah (default `1`). |
 | `Precision` | `number` | Jumlah desimal tampilan. |
 | `Suffix` | `string` | Satuan tampilan, mis. `" spd"`. |
+| `Prefix` | `string` | Awalan tampilan, mis. `"x"` (v2.3.0). |
+| `Units` | `table`/`string` | **v2.3.0** — multi-satuan + konversi otomatis (lihat bawah). |
+| `Depends` | `table` | **v2.3.0** — tampilkan baris ini hanya saat sumber bernilai tertentu (lihat bawah). |
 | `Description` | `string` | Keterangan kecil di bawah judul (opsional). |
 
 ```lua
@@ -287,6 +326,38 @@ Tab:AddSlider({
     Increment = 1, Suffix = " spd",
     Callback = function(value) print("WalkSpeed:", value) end,
 })
+```
+
+**v2.3.0 — klik ANGKA untuk mengetik nilai eksak** (kotak input muncul di tempat angka; Enter/klik-luar untuk menerapkan, otomatis di-clamp & snap ke increment).
+
+**v2.3.0 — `Units` multi-satuan dengan konversi otomatis.** Nilai internal (dan callback) SELALU dalam satuan dasar; tampilan dikonversi via `FromBase`/`ToBase`:
+
+```lua
+local jarak = Tab:AddSlider({
+    Name = "Jarak Serangan", Min = 0, Max = 10000, Default = 1000,
+    Units = {
+        Default = "m",
+        Options = {
+            { Name = "m",  Suffix = "m" },
+            { Name = "km", Suffix = "km", Decimals = 2,
+              FromBase = function(m)  return m / 1000 end,   -- meter → km (tampilan)
+              ToBase   = function(km) return km * 1000 end }, -- km → meter (input user)
+        },
+        Callback = function(unitName) print("Satuan diganti:", unitName) end,
+    },
+    Callback = function(meters) print("Jarak (selalu meter):", meters) end,
+})
+-- Shorthand satuan tunggal: Units = "m"  ·  Units = { "m", "km" }
+```
+
+**v2.3.0 — setter runtime**:
+
+```lua
+slider:SetRange(0, 500)     -- ganti batas (nilai di-clamp ulang)
+slider:SetDecimals(1)       -- jumlah desimal tampilan
+slider:SetIncrement(5)      -- ganti kelipatan snap
+slider:SetSuffix(" km/j")   -- ganti satuan tampilan
+slider:SetUnit("km")        -- pindah satuan aktif (mode Units)
 ```
 
 #### `Tab:AddDropdown({ Name, Values, Default, Multi, Callback })`
@@ -301,6 +372,26 @@ Tab:AddDropdown({
     -- Multi = true,  -- aktifkan untuk multi-select
     Callback = function(value) print("Senjata:", value) end, -- Multi: table
 })
+```
+
+**v2.3.0 — `Search = true`**: kotak pencarian muncul di atas daftar opsi (filter ketika mengetik). **`ApplyButton`** (string/`true`): mode aksi — memilih TIDAK langsung menembak callback; tombol Apply yang mengirimkannya sebagai `callback(nilai, indeks)`:
+
+```lua
+Tab:AddDropdown({
+    Name = "Target Farm",
+    Values = { "Mob Perum", "Mob Kuil", "Boss Petir", "Boss Es" },
+    Multi = true, Search = true, ApplyButton = "Terapkan",
+    Callback = function(values, indices) print("Farm:", table.concat(values, ", ")) end,
+})
+```
+
+**v2.3.0 — kelola opsi saat runtime**:
+
+```lua
+dropdown:SetValues({ "A", "B", "C" }) -- ganti seluruh daftar (pilihan tak valid dibuang)
+dropdown:AddValue("D")                -- tambah satu opsi
+dropdown:RemoveValue("A")             -- hapus satu opsi
+dropdown:Filter("boss")               -- filter tampilan (atau lewat search box)
 ```
 
 #### `Tab:AddTextInput({ Name, Text, Placeholder, ClearOnFocus, Callback })`
@@ -348,6 +439,158 @@ menu:SetDescription("teks keterangan di bawah judul menu")
 | `Description` | `string` | `nil` | Keterangan kecil di bawah judul. |
 | `Collapsed` | `boolean` | `true` | `true` (default sejak v2.2.2) → menu dibuat langsung terlipat · `false` → mulai terbuka. |
 
+#### `Tab:AddList({ Name, Items|Groups, Multi, Search, Selected, MaxHeight, OnItemClick })` · **v2.3.0**
+
+Browser item di dalam UI — daftar yang bisa **dilacak** (search), **dikelompokkan** (groups), dan **dipilih** (klik / multi). Setiap item boleh berupa string biasa atau table `{ Text, TopRight, Image, Id }` (badge kanan, gambar `rbxassetid` milik sendiri — opsional, Id untuk identifikasi stabil).
+
+```lua
+local gudang = Tab:AddList({
+    Name = "Gudang Senjata",
+    Search = true,          -- kotak pencarian di atas daftar
+    Multi = false,          -- true = boleh pilih banyak
+    MaxHeight = 170,        -- tinggi maksimum sebelum scroll
+    Groups = {
+        { Title = "Palu", Items = {
+            { Text = "Mjolnir", TopRight = "Legendary" },
+            { Text = "Stormbreaker", TopRight = "Mythic" },
+        } },
+        { Title = "Tombak", Items = { "Gungnir", "Trisula" } },
+    },
+    OnItemClick = function(item, index, selected)
+        print("Pilih:", item.Text, "→", selected)
+    end,
+})
+
+gudang:Get()            -- item terpilih (atau table item bila Multi)
+gudang:Set("Mjolnir")   -- pilih dari script (string / table / Id)
+gudang:SetItems(items, groups) -- ganti seluruh isi
+gudang:Clear()          -- kosongkan pilihan
+gudang:Filter("palu")   -- filter tampilan
+```
+
+#### `Tab:AddModelView({ Name, Model, Height, Spin })` · **v2.3.0**
+
+Etalase objek 3D di dalam UI (`ViewportFrame`): kamera otomatis membingkai objek, opsi putar otomatis (`Spin`, default `true`), dan objek yang diklon otomatis dibersihkan dari scripts/partikel/suara. **Tanpa `Model` diberikan, etalase menampilkan palu petir geometris BAWAAN** — dibangun murni dari `Part` (tetap nol aset!).
+
+```lua
+local palu = Tab:AddModelView({ Name = "Etalase", Height = 150, Spin = true })
+palu:SetModel(workspace:FindFirstChild("SomeModel")) -- Model/BasePart apa pun
+palu:SetSpin(false)
+palu:Get()   -- objek yang sedang dipajang
+```
+
+#### `Tab:AddCanvas({ Name, Widgets })` · **v2.3.0**
+
+Dashboard mini yang dideklarasikan lewat tabel — baris teks (label + nilai), bar progress, tombol, dan pemisah — semuanya bisa diperbarui saat runtime lewat `:Set(nama, props)`:
+
+```lua
+local dash = Tab:AddCanvas({
+    Name = "Statistik",
+    Widgets = {
+        { Type = "Text",   Name = "kills",  Text = "Kills",  Value = "0" },
+        { Type = "Bar",    Name = "hp",     Text = "Health", Value = 1 }, -- 0..1
+        { Type = "Button", Name = "rejoin", Text = "Rejoin",
+          Callback = function() print("rejoin!") end },
+        { Type = "Divider" },
+    },
+})
+
+dash:Set("kills", { Value = "128" })  -- update dari script
+dash:Set("hp",    { Value = 0.62, Color = Color3.fromRGB(255, 120, 0) })
+dash:Get("kills")   -- { Text = "Kills", Value = "128" }
+dash:Fire("rejoin") -- picu tombol dari script
+dash:AddWidget({ Type = "Text", Name = "deaths", Text = "Deaths", Value = "0" })
+```
+
+---
+
+### 🧲 State, Depends & Sub-row · **v2.3.0**
+
+#### State + Binding — satu nilai untuk banyak elemen
+
+```lua
+local power = ThorUi:CreateState({
+    Name = "PowerLevel", Default = 50,
+    Normalize = function(v) return math.clamp(math.floor(v), 0, 100) end,
+    Callback = function(v) print("Power berubah:", v) end,
+})
+
+local s1 = Tab:AddSlider({ Name = "Power (A)", Min = 0, Max = 100, Default = 50 })
+local s2 = Tab:AddSlider({ Name = "Power (B)", Min = 0, Max = 100, Default = 50 })
+power:Bind(s1)
+power:Bind(s2)
+-- Geser slider A → state berubah → slider B ikut (dan sebaliknya)
+
+-- Transformasi nilai berbeda per elemen (slider 0..100 ↔ state 0..10):
+power:Bind(s1, {
+    ToState  = function(v) return v / 10 end,   -- elemen → state
+    ToOption = function(v) return v * 10 end,   -- state → elemen
+})
+
+power:BindMany({ s1, s2, { Element = someToggle, ToOption = fn } })
+power:Subscribe(function(v) end)  -- berlangganan perubahan (return fungsi unsubscribe)
+power:Unbind(s1)
+power:Get()  power:Set(80)
+```
+
+Binding bekerja untuk semua elemen bernilai (Toggle, Slider, Dropdown, TextInput, Keybind, ColorPicker, List).
+
+#### Depends — baris muncul/sembunyi otomatis
+
+```lua
+local godMode = Tab:AddToggle({ Name = "God Mode", Default = false })
+
+-- Slider ini HANYA tampil saat God Mode ON:
+Tab:AddSlider({
+    Name = "Regen / detik", Min = 0, Max = 100, Default = 10,
+    Depends = { Element = godMode, Value = true },
+})
+
+-- Bentuk lain:
+-- Depends = { State = stateKu,  Value = 25 }                       (via State)
+-- Depends = { Element = slider, Predicate = function(v) return v > 50 end } (predikat bebas)
+
+-- Runtime:
+regenSlider:SetDependency({ Element = godMode, Value = true })
+regenSlider:ClearDependency()
+```
+
+Dependensi bisa DIRANTAI (baris yang bergantung pada baris tersembunyi ikut sembunyi) dan tetap hormat lipatan section maupun hasil pencarian.
+
+#### Sub-row — `Element:AddChild(kind, cfg)`
+
+Setiap elemen inti bisa punya anak bertingkat (tampil terinden di dalam kartu induk, dibuka/ditutup lewat panah kecil di kiri judul):
+
+```lua
+local speedHack = Tab:AddToggle({ Name = "Speed Hack", Default = false })
+speedHack:AddChild("Slider", { Name = "Nilai Speed", Min = 16, Max = 500, Default = 16 })
+speedHack:AddChild("Toggle", { Name = "Saat Lompat Juga", Default = true })
+
+speedHack:SetExpanded(true)   -- buka dari script
+speedHack:IsExpanded()
+-- Kind: "Toggle" "Slider" "Dropdown" "Button" "TextInput" "Keybind"
+--       "ColorPicker" "Label" "Paragraph" "List" "ModelView" "Canvas"
+```
+
+---
+
+### ⚡ Quick Action & Tema · **v2.3.0**
+
+```lua
+-- Tombol bundar melayang di pinggir layar — deretnya bisa DIGESER;
+-- pintasan aksi yang tetap terlihat walau window tertutup:
+ThorUi:AddQuickAction({
+    Icon = "⚡", Name = "Sambar Sekarang",
+    Callback = function() print("ZAP!") end,
+})  -- → { Remove() }
+
+-- Merge tema (panggil SEBELUM CreateWindow — elemen mengambil warna saat dibuat):
+ThorUi:SetTheme({
+    Accent     = Color3.fromRGB(170, 90, 255),
+    AccentGold = Color3.fromRGB(255, 200, 60),
+})
+```
+
 ---
 
 ## 📱 Mobile & 🖥️ PC
@@ -369,8 +612,15 @@ Semua warna & font berada di `ThorUi.Theme`. Ubah **sebelum** membuat window/ele
 ```lua
 local ThorUi = require(ReplicatedStorage.ThorUi)
 
-ThorUi.Theme.Accent     = Color3.fromRGB(170, 90, 255)  -- ungu badai
-ThorUi.Theme.AccentGold = Color3.fromRGB(255, 200, 60)  -- emas petir
+-- v2.3.0: cara cepat — merge patch tema:
+ThorUi:SetTheme({
+    Accent     = Color3.fromRGB(170, 90, 255),  -- ungu badai
+    AccentGold = Color3.fromRGB(255, 200, 60),  -- emas petir
+})
+
+-- (cara lama tetap didukung — edit langsung:)
+-- ThorUi.Theme.Accent     = Color3.fromRGB(170, 90, 255)
+-- ThorUi.Theme.AccentGold = Color3.fromRGB(255, 200, 60)
 
 local Window = ThorUi:CreateWindow({ Title = "ThorUi ⚡" })
 ```
@@ -404,7 +654,7 @@ Jadi UI yang dibongkar tidak meninggalkan listener nyasar di `UserInputService` 
 
 ## 📄 Contoh Lengkap
 
-Lihat [`Example.lua`](Example.lua) — LocalScript siap tempel yang mendemokan semua komponen: window + 2 tab, section, button, toggle, slider, dropdown, textinput, keybind, paragraph, dan notify. Versi comment-nya juga tersedia di bagian paling bawah `ThorUi.lua`.
+Lihat [`Example.lua`](Example.lua) — LocalScript siap tempel yang mendemokan semua komponen: window + 2 tab, section, button, toggle, slider (multi-satuan), dropdown (search + apply), textinput, keybind, colorpicker, **plus fitur v2.3.0: state binding, Depends, sub-row AddChild, List, ModelView, Canvas, grup radio, dan quick action**. Versi comment-nya juga tersedia di bagian paling bawah `ThorUi.lua`.
 
 ---
 

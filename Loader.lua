@@ -258,6 +258,176 @@ Tab2:AddButton({
         end,
 })
 
+-- ═══ TAB 2.5: Fitur baru v2.3.0 ═══
+local Tab4 = Window:CreateTab({ Name = "v2.3 Fitur", Icon = "🧲" })
+
+Tab4:AddSection({ Name = "STATE BINDING — geser salah satu, keduanya ikut", Collapsed = false })
+
+local powerState = ThorUi:CreateState({
+        Name = "PowerLevel",
+        Default = 50,
+        Callback = function(v)
+                print("[TEST][v2.3] Power state =", v)
+        end,
+})
+local sliderA = Tab4:AddSlider({ Name = "Power (A)", Min = 0, Max = 100, Default = 50 })
+local sliderB = Tab4:AddSlider({ Name = "Power (B)", Min = 0, Max = 100, Default = 50 })
+powerState:Bind(sliderA)
+powerState:Bind(sliderB)
+
+Tab4:AddSection({ Name = "DEPENDS — baris muncul/sembunyi otomatis", Collapsed = false })
+
+local depToggle = Tab4:AddToggle({
+        Name = "Tampilkan Pengaturan Lanjutan",
+        Default = false,
+        Callback = function(v)
+                print("[TEST][v2.3] Depends source =", v)
+        end,
+})
+Tab4:AddSlider({
+        Name = "Regen / detik (muncul saat toggle ON)",
+        Min = 0, Max = 100, Default = 10,
+        Depends = { Element = depToggle, Value = true },
+        Callback = function(v)
+                print("[TEST][v2.3] Regen =", v)
+        end,
+})
+Tab4:AddDropdown({
+        Name = "Mode Regen (muncul saat toggle ON)",
+        Values = { "Perlahan", "Sedang", "Kilat" },
+        Depends = { Element = depToggle, Value = true },
+})
+
+Tab4:AddSection({ Name = "SUB-ROW — elemen bertingkat (klik panah kiri judul)", Collapsed = false })
+
+local speedParent = Tab4:AddToggle({
+        Name = "Speed Hack (punya anak)",
+        Default = false,
+        Callback = function(v)
+                print("[TEST][v2.3] Speed Hack =", v)
+        end,
+})
+speedParent:AddChild("Slider", {
+        Name = "Nilai Speed", Min = 16, Max = 500, Default = 16, Suffix = " spd",
+        Callback = function(v)
+                print("[TEST][v2.3] Child slider =", v)
+        end,
+})
+speedParent:AddChild("Toggle", {
+        Name = "Terapkan saat lompat juga",
+        Default = true,
+})
+
+Tab4:AddSection({ Name = "SLIDER MULTI-SATUAN + ketik nilai eksak", Collapsed = false })
+
+Tab4:AddSlider({
+        Name = "Jarak Serangan (klik angkanya!)",
+        Description = "Klik ANGKA untuk mengetik nilai eksak. Ganti satuan lewat chip kanan.",
+        Min = 0, Max = 10000, Default = 1000,
+        Units = {
+                Default = "m",
+                Options = {
+                        { Name = "m", Suffix = "m" },
+                        { Name = "km", Suffix = "km", Decimals = 2,
+                          FromBase = function(m)
+                                return m / 1000
+                          end,
+                          ToBase = function(km)
+                                return km * 1000
+                          end },
+                },
+                Callback = function(unitName)
+                        print("[TEST][v2.3] Satuan diganti:", unitName)
+                end,
+        },
+        Callback = function(meters)
+                print("[TEST][v2.3] Jarak (selalu meter) =", meters)
+        end,
+})
+
+Tab4:AddSection({ Name = "DROPDOWN: Search + Apply + opsi runtime", Collapsed = false })
+
+local dd = Tab4:AddDropdown({
+        Name = "Target Farm (Search + Apply)",
+        Values = { "Mob Perum", "Mob Kuil", "Boss Petir", "Boss Es", "Mini Boss", "Boss Api" },
+        Multi = true,
+        Search = true,
+        ApplyButton = "Terapkan",
+        Callback = function(values, indices)
+                print("[TEST][v2.3] Farm apply:", table.concat(values, ", "))
+                ThorUi:Notify({ Title = "Apply", Content = "Terpilih: " .. #values .. " target", Duration = 3 })
+        end,
+})
+Tab4:AddButton({
+        Name = "dd:AddValue('Boss Bayangan')",
+        Callback = function()
+                dd:AddValue("Boss Bayangan")
+        end,
+})
+
+Tab4:AddSection({ Name = "LIST — browser item (cari / grup / pilih)", Collapsed = false })
+
+Tab4:AddList({
+        Name = "Gudang Senjata",
+        Search = true,
+        Groups = {
+                { Title = "Palu", Items = {
+                        { Text = "Mjolnir", TopRight = "Legendary" },
+                        { Text = "Stormbreaker", TopRight = "Mythic" },
+                } },
+                { Title = "Tombak", Items = { "Gungnir", "Trisula" } },
+                { Title = "Lainnya", Items = { "Perisai Aegis", "Sarung Besi" } },
+        },
+        OnItemClick = function(item, index, selected)
+                print("[TEST][v2.3] List pilih:", item.Text, "→", selected)
+        end,
+})
+
+Tab4:AddSection({ Name = "MODELVIEW — etalase 3D + CANVAS dashboard", Collapsed = false })
+
+Tab4:AddModelView({ Name = "Palu Petir (bawaan)", Height = 150, Spin = true })
+
+local dash = Tab4:AddCanvas({
+        Name = "Statistik",
+        Widgets = {
+                { Type = "Text", Name = "kills", Text = "Kills", Value = "0" },
+                { Type = "Bar", Name = "hp", Text = "Health", Value = 1 },
+                { Type = "Button", Name = "rejoin", Text = "Rejoin", Callback = function()
+                        print("[TEST][v2.3] rejoin!")
+                end },
+                { Type = "Divider" },
+                { Type = "Text", Name = "ping", Text = "Ping", Value = "42 ms" },
+        },
+})
+task.spawn(function()
+        -- simulasi update dashboard tiap detik (berhenti sendiri saat
+        -- elemen dihancurkan / window di-destroy)
+        local kills = 0
+        while dash and dash.Instance and dash.Instance.Parent do
+                task.wait(1)
+                kills = kills + 1
+                pcall(function()
+                        dash:Set("kills", { Value = tostring(kills) })
+                        dash:Set("hp", { Value = 0.4 + 0.6 * math.abs(math.sin(kills / 5)) })
+                end)
+        end
+end)
+
+Tab4:AddSection({ Name = "GROUP RADIO + QUICK ACTION", Collapsed = false })
+
+local aimGroup = ThorUi:CreateGroup({ Name = "Mode Aim" })
+Tab4:AddToggle({ Name = "Aim: Kepala", Group = aimGroup, Default = true })
+Tab4:AddToggle({ Name = "Aim: Dada", Group = aimGroup })
+Tab4:AddToggle({ Name = "Aim: Kaki", Group = aimGroup })
+
+ThorUi:AddQuickAction({
+        Icon = "⚡",
+        Name = "Sambar Sekarang",
+        Callback = function()
+                ThorUi:Notify({ Title = "⚡ ZAP!", Content = "Quick action ditekan.", Duration = 2 })
+        end,
+})
+
 -- ═══ TAB 3: Checklist & info ═══
 local Tab3 = Window:CreateTab({ Name = "Checklist", Icon = "✅" })
 
@@ -349,7 +519,16 @@ Tab3:AddParagraph({
                 .. "    kini default dihitung murni dari dimensi layar aktual,\n"
                 .. "    jadi tak mungkin terpotong lagi. Ambang sidebar\n"
                 .. "    icon-only turun 520 → 440px (default persegu tetap\n"
-                .. "    menampilkan NAMA tab).",
+                .. "    menampilkan NAMA tab).\n"
+                .. "16) v2.3.0: RILIS FITUR BESAR — tab 'v2.3 Fitur' berisi:\n"
+                .. "    STATE BINDING (2 slider berbagi 1 nilai), DEPENDS\n"
+                .. "    (baris muncul/sembunyi otomatis), SUB-ROW AddChild\n"
+                .. "    (elemen bertingkat — panah kecil di kiri judul),\n"
+                .. "    SLIDER MULTI-SATUAN (m ↔ km, klik angka utk ketik\n"
+                .. "    eksak), DROPDOWN Search+Apply+opsi runtime, LIST\n"
+                .. "    browser item, MODELVIEW etalase 3D (palu petir\n"
+                .. "    bawaan murni Part), CANVAS dashboard, GROUP radio,\n"
+                .. "    dan QUICK ACTION melayang di pinggir layar.",
 })
 
 Tab3:AddSection({ Name = "INFO" })
@@ -358,11 +537,11 @@ Tab3:AddLabel({ Text = "Repo: github.com/dwisetyabudi15581/ThorUi" })
 Tab3:AddLabel({ Text = "Output lengkap di console (F9): cari [TEST]" })
 
 --// ─── 4. Sinyal sukses ──────────────────────────────────────────────────────
-print("[ThorUi Loader] 🎉 Demo v2 siap! Coba: splash, sidebar tab, search bar, ColorPicker, Confirm, minimize menu (klik judul section), drag window bebas tanpa batas, semua section mulai terlipat (rapi!)")
+print("[ThorUi Loader] 🎉 Demo v2.3 siap! Cek tab BARU 'v2.3 Fitur': State binding, Depends, sub-row AddChild, slider multi-satuan, dropdown search+apply, List, ModelView 3D, Canvas, grup radio, quick action. Plus: drag bebas, section terlipat, splash, search bar.")
 print("[ThorUi Loader] Ctrl+M = console. RightControl = show/hide UI.")
 
 ThorUi:Notify({
-        Title = "⚡ ThorUi siap di-test!",
-        Content = "Cek 3 tab: Komponen, Kontrol, Checklist.",
+        Title = "⚡ ThorUi v2.3 siap!",
+        Content = "Cek 4 tab: Komponen, Kontrol, v2.3 Fitur, Checklist.",
         Duration = 5,
 })
